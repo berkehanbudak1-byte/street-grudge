@@ -1008,31 +1008,58 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.fillStyle = '#111';
         ctx.fillRect(vx, groundScreenY, vw, 5);
       } else {
-        // FLOOR 1: CLASSIC STREET FIGHTER CITY STREET!
+        // FLOOR 1: VIBRANT ARCADE STREET FIGHTER SUNSET CITY STREET!
         const g = ctx.createLinearGradient(0, vy, 0, groundScreenY);
-        g.addColorStop(0, '#0284c7');
-        g.addColorStop(0.55, '#7dd3fc');
-        g.addColorStop(1, '#fef3c7');
+        g.addColorStop(0, '#0f172a');
+        g.addColorStop(0.28, '#0284c7');
+        g.addColorStop(0.68, '#fb923c');
+        g.addColorStop(1, '#fef08a');
         ctx.fillStyle = g;
         ctx.fillRect(vx, vy, vw, vh);
 
-        // Distant City Skyline Parallax
-        const skyOff = -(camX * 0.25) % 240;
-        for (let bx = vx + skyOff - 240; bx < vx + vw + 240; bx += 240) {
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(bx, groundScreenY - 270, 95, 270);
-          ctx.fillStyle = '#475569';
-          ctx.fillRect(bx + 105, groundScreenY - 210, 115, 210);
+        // Glowing Arcade Sun Disc + Parallax Fluffy Comic Clouds!
+        const sunX = vx + vw * 0.5;
+        const sunG = ctx.createRadialGradient(sunX, groundScreenY - 220, 14, sunX, groundScreenY - 220, 160);
+        sunG.addColorStop(0, 'rgba(254, 240, 138, 0.92)');
+        sunG.addColorStop(0.5, 'rgba(251, 146, 60, 0.35)');
+        sunG.addColorStop(1, 'rgba(251, 146, 60, 0)');
+        ctx.fillStyle = sunG;
+        ctx.beginPath(); ctx.arc(sunX, groundScreenY - 220, 160, 0, Math.PI * 2); ctx.fill();
+
+        const cloudOff = -(camX * 0.12) % 360;
+        ctx.fillStyle = 'rgba(255, 247, 237, 0.72)';
+        for (let clx = vx + cloudOff - 360; clx < vx + vw + 360; clx += 360) {
+          ctx.beginPath();
+          ctx.arc(clx + 70, vy + 120, 28, 0, Math.PI * 2);
+          ctx.arc(clx + 102, vy + 112, 34, 0, Math.PI * 2);
+          ctx.arc(clx + 138, vy + 122, 26, 0, Math.PI * 2);
+          ctx.fill();
         }
 
-        // Foreground Iconic Comic Storefronts (Library, Ramen, Arcade, Coffee, Bank)
+        // Distant City Skyline Parallax with Lit Windows!
+        const skyOff = -(camX * 0.25) % 260;
+        for (let bx = vx + skyOff - 260; bx < vx + vw + 260; bx += 260) {
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(bx, groundScreenY - 295, 102, 295);
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(bx + 110, groundScreenY - 230, 122, 230);
+          // Warm lit skyscraper windows
+          ctx.fillStyle = 'rgba(254, 240, 138, 0.55)';
+          for (let wy = groundScreenY - 272; wy < groundScreenY - 195; wy += 20) {
+            ctx.fillRect(bx + 14, wy, 14, 10);
+            ctx.fillRect(bx + 42, wy, 14, 10);
+            ctx.fillRect(bx + 70, wy, 14, 10);
+          }
+        }
+
+        // Foreground Iconic Illustrated Storefronts with Striped Awnings & Neon Glow!
         const shops = [
-          { col: '#d97706', name: 'CENTRAL LIBRARY' },
-          { col: '#e11d48', name: 'DRAGON RAMEN' },
-          { col: '#4f46e5', name: 'ARCADE 1991' },
-          { col: '#0ea5e9', name: 'LATTE LAB' },
-          { col: '#db2777', name: 'SNEAKER SHOP' },
-          { col: '#0f766e', name: '24H BODEGA' }
+          { col: '#b45309', accent: '#f59e0b', neon: '#fde047', name: 'CENTRAL LIBRARY' },
+          { col: '#9f1239', accent: '#f43f5e', neon: '#fb7185', name: 'DRAGON RAMEN' },
+          { col: '#3730a3', accent: '#6366f1', neon: '#38bdf8', name: 'ARCADE 1991' },
+          { col: '#0369a1', accent: '#38bdf8', neon: '#fef08a', name: 'LATTE LAB' },
+          { col: '#9d174d', accent: '#ec4899', neon: '#f472b6', name: 'SNEAKER SHOP' },
+          { col: '#115e59', accent: '#14b8a6', neon: '#4ade80', name: '24H BODEGA' }
         ];
         const shopW = 340;
         const startIdx = Math.max(0, Math.floor((camX - vw) / shopW));
@@ -1040,52 +1067,69 @@ window.StreetGrudge = window.StreetGrudge || {};
         for (let i = startIdx; i <= endIdx; i++) {
           const shop = shops[i % shops.length];
           const bx = vx + vw / 2 + (i * shopW - camX) + sx;
-          ctx.fillStyle = shop.col;
-          ctx.strokeStyle = '#111';
-          ctx.lineWidth = 3;
-          ctx.fillRect(bx, groundScreenY - 195, shopW - 22, 195);
-          ctx.strokeRect(bx, groundScreenY - 195, shopW - 22, 195);
-          // Storefront Sign
-          ctx.fillStyle = '#111';
-          ctx.fillRect(bx + 24, groundScreenY - 172, shopW - 70, 32);
-          ctx.fillStyle = '#ffe135';
-          ctx.font = '900 16px Impact, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(shop.name, bx + (shopW - 22) / 2, groundScreenY - 150);
+          // Building facade gradient
+          const fg = ctx.createLinearGradient(bx, groundScreenY - 205, bx, groundScreenY);
+          fg.addColorStop(0, shop.accent); fg.addColorStop(1, shop.col);
+          ctx.fillStyle = fg; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+          ctx.fillRect(bx, groundScreenY - 205, shopW - 22, 205);
+          ctx.strokeRect(bx, groundScreenY - 205, shopW - 22, 205);
+
+          // Glowing Neon Signboard
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(bx + 22, groundScreenY - 182, shopW - 66, 36);
+          ctx.strokeStyle = shop.neon; ctx.lineWidth = 2.5;
+          ctx.strokeRect(bx + 22, groundScreenY - 182, shopW - 66, 36);
+          ctx.fillStyle = shop.neon;
+          ctx.font = '900 17px Impact, sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(shop.name, bx + (shopW - 22) / 2, groundScreenY - 158);
           ctx.textAlign = 'left';
-          // Windows
-          ctx.fillStyle = '#bae6fd';
-          ctx.fillRect(bx + 26, groundScreenY - 115, 92, 72);
-          ctx.strokeRect(bx + 26, groundScreenY - 115, 92, 72);
-          ctx.fillRect(bx + 195, groundScreenY - 115, 92, 72);
-          ctx.strokeRect(bx + 195, groundScreenY - 115, 92, 72);
+
+          // Striped Comic Shop Awning
+          ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+          for (let ax = 16; ax < shopW - 44; ax += 24) {
+            ctx.fillStyle = ((ax - 16) / 24) % 2 === 0 ? '#ffffff' : shop.accent;
+            ctx.fillRect(bx + ax, groundScreenY - 134, 24, 18);
+            ctx.strokeRect(bx + ax, groundScreenY - 134, 24, 18);
+          }
+
+          // Illuminated Shop Windows with diagonal glass reflection!
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(bx + 26, groundScreenY - 110, 92, 74); ctx.strokeRect(bx + 26, groundScreenY - 110, 92, 74);
+          ctx.fillRect(bx + 195, groundScreenY - 110, 92, 74); ctx.strokeRect(bx + 195, groundScreenY - 110, 92, 74);
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.beginPath(); ctx.moveTo(bx + 36, groundScreenY - 110); ctx.lineTo(bx + 54, groundScreenY - 110); ctx.lineTo(bx + 32, groundScreenY - 36); ctx.lineTo(bx + 26, groundScreenY - 36); ctx.closePath(); ctx.fill();
+
+          // Vintage Streetlamp Post between shops!
+          const lx = bx + shopW - 11;
+          ctx.fillStyle = '#1e293b'; ctx.fillRect(lx - 3, groundScreenY - 175, 6, 175);
+          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(lx, groundScreenY - 178, 8, 0, Math.PI * 2); ctx.fill();
+          const lg = ctx.createRadialGradient(lx, groundScreenY - 178, 4, lx, groundScreenY - 178, 52);
+          lg.addColorStop(0, 'rgba(254,240,138,0.45)'); lg.addColorStop(1, 'rgba(254,240,138,0)');
+          ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(lx, groundScreenY - 178, 52, 0, Math.PI * 2); ctx.fill();
         }
 
         // Background Street Cars zooming behind the sidewalk!
         for (const car of this.bgCars) {
           const cx = vx + vw / 2 + (car.x - camX) + sx;
           if (cx < vx - 120 || cx > vx + vw + 120) continue;
-          ctx.fillStyle = car.color;
-          ctx.strokeStyle = '#111';
-          ctx.lineWidth = 2.5;
-          ctx.fillRect(cx - 46, groundScreenY - 46, 92, 34);
-          ctx.strokeRect(cx - 46, groundScreenY - 46, 92, 34);
+          ctx.fillStyle = car.color; ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5;
+          ctx.fillRect(cx - 46, groundScreenY - 46, 92, 34); ctx.strokeRect(cx - 46, groundScreenY - 46, 92, 34);
           ctx.fillStyle = '#bae6fd';
-          ctx.fillRect(cx - 26, groundScreenY - 64, 52, 20);
-          ctx.strokeRect(cx - 26, groundScreenY - 64, 52, 20);
+          ctx.fillRect(cx - 26, groundScreenY - 64, 52, 20); ctx.strokeRect(cx - 26, groundScreenY - 64, 52, 20);
           ctx.fillStyle = '#111';
           ctx.beginPath(); ctx.arc(cx - 26, groundScreenY - 12, 10, 0, Math.PI * 2); ctx.fill();
           ctx.beginPath(); ctx.arc(cx + 26, groundScreenY - 12, 10, 0, Math.PI * 2); ctx.fill();
         }
 
-        // Sidewalk + Asphalt Road foreground
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillRect(vx, groundScreenY, vw, 34);
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(vx, groundScreenY + 34, vw, vh - groundScreenY - 34);
+        // Perspective Sidewalk Tiles + Asphalt Road with Dashed Lane!
+        ctx.fillStyle = '#d6d3d1'; ctx.fillRect(vx, groundScreenY, vw, 34);
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(vx, groundScreenY + 34, vw, vh - groundScreenY - 34);
         ctx.fillStyle = '#111';
         ctx.fillRect(vx, groundScreenY, vw, 4);
         ctx.fillRect(vx, groundScreenY + 34, vw, 4);
+        ctx.strokeStyle = '#facc15'; ctx.lineWidth = 4; ctx.setLineDash([28, 22]);
+        ctx.beginPath(); ctx.moveTo(vx, groundScreenY + 72); ctx.lineTo(vx + vw, groundScreenY + 72); ctx.stroke();
+        ctx.setLineDash([]);
       }
 
       // Draw Stairs & Elevators on this floor!

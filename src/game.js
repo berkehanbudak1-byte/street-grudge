@@ -106,6 +106,10 @@ window.StreetGrudge = window.StreetGrudge || {};
 
     bindEvents() {
       window.addEventListener('resize', () => this.resize());
+      window.addEventListener('blur', () => { for (const k in this.keys) this.keys[k] = false; });
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) for (const k in this.keys) this.keys[k] = false;
+      });
 
       window.addEventListener('keydown', (e) => {
         this.sfx.unlock();

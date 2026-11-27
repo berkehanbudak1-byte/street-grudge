@@ -66,8 +66,9 @@
 
   function getSafeStorage() {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return window.localStorage;
+      if (typeof window !== 'undefined') {
+        const storage = window.localStorage;
+        if (storage) return storage;
       }
     } catch (_) {
       return null;
@@ -75,10 +76,39 @@
     return null;
   }
 
-  function readBoundedInt(storage, key, fallback = 0, min = 0, max = 999999999) {
-    if (!storage || typeof storage.getItem !== 'function') return fallback;
+  function safeGetItem(storage, key, fallback = null) {
     try {
-      const raw = storage.getItem(key);
+      if (!storage || typeof storage.getItem !== 'function') return fallback;
+      const val = storage.getItem(key);
+      return val == null ? fallback : val;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function safeSetItem(storage, key, value) {
+    try {
+      if (!storage || typeof storage.setItem !== 'function') return false;
+      storage.setItem(key, String(value));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function safeRemoveItem(storage, key) {
+    try {
+      if (!storage || typeof storage.removeItem !== 'function') return false;
+      storage.removeItem(key);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function readBoundedInt(storage, key, fallback = 0, min = 0, max = 999999999) {
+    try {
+      const raw = safeGetItem(storage, key, null);
       if (raw == null || raw === '') return fallback;
       const trimmed = String(raw).trim();
       if (trimmed.length > 64) return fallback;
@@ -95,11 +125,9 @@
   }
 
   function writeBoundedInt(storage, key, value, min = 0, max = 999999999) {
-    if (!storage || typeof storage.setItem !== 'function') return false;
     try {
       const safe = clampInt(value, min, min, max);
-      storage.setItem(key, String(safe));
-      return true;
+      return safeSetItem(storage, key, String(safe));
     } catch (_) {
       return false;
     }
@@ -144,6 +172,9 @@
     safeJsonParse,
     clampInt,
     getSafeStorage,
+    safeGetItem,
+    safeSetItem,
+    safeRemoveItem,
     readBoundedInt,
     writeBoundedInt,
     setSafeFormattedText

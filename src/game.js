@@ -16,6 +16,22 @@ window.StreetGrudge = window.StreetGrudge || {};
   const HI_SCORE_KEY = 'street_grudge_hi';
   const MAX_HIGH_SCORE = 999999999;
 
+  function readStoredHighScore() {
+    try {
+      return SEC.readBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, 0, 0, MAX_HIGH_SCORE);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function writeStoredHighScore(score) {
+    try {
+      return SEC.writeBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, score, 0, MAX_HIGH_SCORE);
+    } catch (_) {
+      return false;
+    }
+  }
+
   class StreetGrudgeGame {
     constructor() {
       this.canvas = document.getElementById('gameCanvas');
@@ -54,7 +70,7 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       this.hitstop = 0;
       this.score = 0;
-      this.highScore = SEC.readBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, 0, 0, MAX_HIGH_SCORE);
+      this.highScore = readStoredHighScore();
       this.comboCount = 0;
       this.comboTimer = 0;
       this.walkedDist = 0;
@@ -943,7 +959,7 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       if (this.score > this.highScore) {
         this.highScore = SEC.clampInt(this.score, this.highScore, 0, MAX_HIGH_SCORE);
-        SEC.writeBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, this.highScore, 0, MAX_HIGH_SCORE);
+        writeStoredHighScore(this.highScore);
       }
 
       const modal = document.getElementById('endModal');

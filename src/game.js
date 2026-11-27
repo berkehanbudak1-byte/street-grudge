@@ -12,6 +12,9 @@ window.StreetGrudge = window.StreetGrudge || {};
 
   const t = (key) => SG.t(key);
   const AI_STATES = SG.AI_STATES;
+  const SEC = SG.Security;
+  const HI_SCORE_KEY = 'street_grudge_hi';
+  const MAX_HIGH_SCORE = 999999999;
 
   class StreetGrudgeGame {
     constructor() {
@@ -22,7 +25,7 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.world = new SG.CityWorld();
       this.sideEngine = new SG.SideFighterEngine(this);
 
-      this.keys = {};
+      this.keys = Object.create(null);
       this.mode = 'sf1p'; // Default to the requested 2-Screen Side-View Street Fighter Search!
       this.selectedFighterIdx = 0;
       this.running = false;
@@ -51,7 +54,7 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       this.hitstop = 0;
       this.score = 0;
-      this.highScore = Number(localStorage.getItem('street_grudge_hi') || 0);
+      this.highScore = SEC.readBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, 0, 0, MAX_HIGH_SCORE);
       this.comboCount = 0;
       this.comboTimer = 0;
       this.walkedDist = 0;
@@ -88,20 +91,36 @@ window.StreetGrudge = window.StreetGrudge || {};
     renderFighterPicker() {
       const wrap = document.getElementById('fighterPicker');
       if (!wrap) return;
-      wrap.innerHTML = '';
+      const frag = document.createDocumentFragment();
       SG.PLAYABLE_ROSTER.forEach((f, idx) => {
         const btn = document.createElement('button');
         btn.className = `fighter-card comic-border-sm ${idx === this.selectedFighterIdx ? 'fighter-active' : ''}`;
-        btn.innerHTML = `
-          <div class="fighter-swatch" style="background:${f.giColor}; border-color:${f.bandanaColor};"></div>
-          <div class="font-arcade" style="font-size:13px; color:#111;">${f.short}</div>
-          <div class="font-pixel" style="font-size:9px; color:#475569;">${SG.currentLang === 'tr' ? f.roleTr : f.roleEn}</div>`;
+
+        const swatch = document.createElement('div');
+        swatch.className = 'fighter-swatch';
+        swatch.style.background = SEC.sanitizeHexColor(f.giColor, '#f8fafc');
+        swatch.style.borderColor = SEC.sanitizeHexColor(f.bandanaColor, '#111111');
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'font-arcade';
+        nameEl.style.fontSize = '13px';
+        nameEl.style.color = '#111';
+        nameEl.textContent = f.short;
+
+        const roleEl = document.createElement('div');
+        roleEl.className = 'font-pixel';
+        roleEl.style.fontSize = '9px';
+        roleEl.style.color = '#475569';
+        roleEl.textContent = SG.currentLang === 'tr' ? f.roleTr : f.roleEn;
+
+        btn.append(swatch, nameEl, roleEl);
         btn.addEventListener('click', () => {
           this.selectedFighterIdx = idx;
           this.renderFighterPicker();
         });
-        wrap.appendChild(btn);
+        frag.appendChild(btn);
       });
+      wrap.replaceChildren(frag);
     }
 
     bindEvents() {
@@ -235,38 +254,73 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.updateControlsLegend();
     }
 
-    updateControlsLegend() {
-      const startCtrl = document.getElementById('startControlsBox');
-      const hudCtrl = document.getElementById('controlsStrip');
-      let html = '';
+    renderControlsLegend(container) {
+      if (!container) return;
+      const frag = document.createDocumentFragment();
+      const addItem = (keyLabel, desc) => {
+        const span = document.createElement('span');
+        const cap = document.createElement('span');
+        cap.className = 'keycap';
+        cap.textContent = keyLabel;
+        span.append(cap, document.createTextNode(` ${desc}`));
+        frag.appendChild(span);
+      };
+      const addPlayerRow = (color, heading, pairs) => {
+        const row = document.createElement('span');
+        row.style.color = color;
+        const b = document.createElement('b');
+        b.textContent = heading;
+        row.append(b, document.createTextNode(' '));
+        pairs.forEach(([k, label], idx) => {
+          if (idx > 0) row.appendChild(document.createTextNode(' '));
+          const cap = document.createElement('span');
+          cap.className = 'keycap';
+          cap.textContent = k;
+          row.appendChild(cap);
+          if (label) row.appendChild(document.createTextNode(label));
+        });
+        frag.appendChild(row);
+      };
+
       if (this.mode === 'sf1p') {
-        html = `
-          <span><span class="keycap">A/D</span> Yürü</span>
-          <span><span class="keycap">W</span> Zıpla / Merdiven-Asansör</span>
-          <span><span class="keycap">S</span> Eğil</span>
-          <span><span class="keycap">J</span> Yumruk</span>
-          <span><span class="keycap">K</span> Tekme</span>
-          <span><span class="keycap">L</span> Blok/Parry</span>
-          <span><span class="keycap">U</span> Hadouken / Süper</span>
-          <span><span class="keycap">W+U</span> Shoryuken</span>
-          <span><span class="keycap">E</span> Bağır</span>`;
+        [
+          ['A/D', 'Yürü'],
+          ['W', 'Zıpla / Merdiven-Asansör'],
+          ['S', 'Eğil'],
+          ['J', 'Yumruk'],
+          ['K', 'Tekme'],
+          ['L', 'Blok/Parry'],
+          ['U', 'Hadouken / Süper'],
+          ['W+U', 'Shoryuken'],
+          ['E', 'Bağır']
+        ].forEach(([k, d]) => addItem(k, d));
       } else if (this.mode === 'sf2p') {
-        html = `
-          <span style="color:#ffe135"><b>P1 (SOL→):</b> <span class="keycap">WASD</span> <span class="keycap">F</span>Yumruk <span class="keycap">G</span>Tekme <span class="keycap">H</span>Blok <span class="keycap">T</span>Özel <span class="keycap">Space</span>Dash <span class="keycap">E</span>Bağır</span>
-          <span style="color:#38bdf8"><b>P2 (←SAĞ):</b> <span class="keycap">Oklar</span> <span class="keycap">J</span>Yumruk <span class="keycap">K</span>Tekme <span class="keycap">L</span>Blok <span class="keycap">U</span>Özel <span class="keycap">Enter</span>Dash <span class="keycap">O</span>Bağır</span>`;
+        addPlayerRow('#ffe135', 'P1 (SOL→):', [
+          ['WASD', ''], ['F', 'Yumruk'], ['G', 'Tekme'], ['H', 'Blok'],
+          ['T', 'Özel'], ['Space', 'Dash'], ['E', 'Bağır']
+        ]);
+        addPlayerRow('#38bdf8', 'P2 (←SAĞ):', [
+          ['Oklar', ''], ['J', 'Yumruk'], ['K', 'Tekme'], ['L', 'Blok'],
+          ['U', 'Özel'], ['Enter', 'Dash'], ['O', 'Bağır']
+        ]);
       } else {
-        html = `
-          <span><span class="keycap">WASD</span> Yürü</span>
-          <span><span class="keycap">J</span> Yumruk</span>
-          <span><span class="keycap">K</span> Tekme</span>
-          <span><span class="keycap">L</span> Blok/Parry</span>
-          <span><span class="keycap">U</span> Özel/Süper</span>
-          <span><span class="keycap">C</span> Silah Fırlat</span>
-          <span><span class="keycap">Space</span> Dash</span>
-          <span><span class="keycap">E</span> Bağır</span>`;
+        [
+          ['WASD', 'Yürü'],
+          ['J', 'Yumruk'],
+          ['K', 'Tekme'],
+          ['L', 'Blok/Parry'],
+          ['U', 'Özel/Süper'],
+          ['C', 'Silah Fırlat'],
+          ['Space', 'Dash'],
+          ['E', 'Bağır']
+        ].forEach(([k, d]) => addItem(k, d));
       }
-      startCtrl.innerHTML = html;
-      hudCtrl.innerHTML = html;
+      container.replaceChildren(frag);
+    }
+
+    updateControlsLegend() {
+      this.renderControlsLegend(document.getElementById('startControlsBox'));
+      this.renderControlsLegend(document.getElementById('controlsStrip'));
     }
 
     toggleMute() {
@@ -292,13 +346,13 @@ window.StreetGrudge = window.StreetGrudge || {};
 
     syncLanguageUI() {
       document.getElementById('startSubtitle').textContent = t('subtitle');
-      document.getElementById('startPitch').innerHTML = t('pitch');
+      SEC.setSafeFormattedText(document.getElementById('startPitch'), t('pitch'));
       document.getElementById('card1Title').textContent = t('card1Title');
-      document.getElementById('card1Body').innerHTML = t('card1Body');
+      SEC.setSafeFormattedText(document.getElementById('card1Body'), t('card1Body'));
       document.getElementById('card2Title').textContent = t('card2Title');
-      document.getElementById('card2Body').innerHTML = t('card2Body');
+      SEC.setSafeFormattedText(document.getElementById('card2Body'), t('card2Body'));
       document.getElementById('card3Title').textContent = t('card3Title');
-      document.getElementById('card3Body').innerHTML = t('card3Body');
+      SEC.setSafeFormattedText(document.getElementById('card3Body'), t('card3Body'));
       document.getElementById('pickFighterLabel').textContent = t('pickFighter');
       document.getElementById('btnStartGame').textContent = t('startBtn');
       document.getElementById('btnPlayAgain').textContent = t('playAgainBtn');
@@ -888,8 +942,8 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.running = false;
 
       if (this.score > this.highScore) {
-        this.highScore = this.score;
-        localStorage.setItem('street_grudge_hi', String(this.highScore));
+        this.highScore = SEC.clampInt(this.score, this.highScore, 0, MAX_HIGH_SCORE);
+        SEC.writeBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, this.highScore, 0, MAX_HIGH_SCORE);
       }
 
       const modal = document.getElementById('endModal');
@@ -1556,11 +1610,19 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       // Rival Checklist Badges
       const listEl = document.getElementById('rivalChecklist');
-      listEl.innerHTML = this.rivals.map((rv) => {
-        const icon = rv.ko ? '💀' : (rv.aiState === AI_STATES.CALMED ? '☕' : '🔥');
-        const bg = rv.ko ? '#334155' : (rv.aiState === AI_STATES.CALMED ? '#0369a1' : '#b91c1c');
-        return `<span class="rival-chip" style="background:${bg}">${icon}${rv.short}</span>`;
-      }).join('');
+      if (listEl) {
+        const frag = document.createDocumentFragment();
+        for (const rv of this.rivals) {
+          const icon = rv.ko ? '💀' : (rv.aiState === AI_STATES.CALMED ? '☕' : '🔥');
+          const bg = rv.ko ? '#334155' : (rv.aiState === AI_STATES.CALMED ? '#0369a1' : '#b91c1c');
+          const chip = document.createElement('span');
+          chip.className = 'rival-chip';
+          chip.style.background = bg;
+          chip.textContent = `${icon}${rv.short}`;
+          frag.appendChild(chip);
+        }
+        listEl.replaceChildren(frag);
+      }
 
       const comboBox = document.getElementById('comboBox');
       if (this.comboCount >= 2) {

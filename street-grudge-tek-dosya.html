@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" />
   <title>STREET GRUDGE v3 — Split-Screen Street Fighter & Open-World</title>
   <style>
 /* =========================================================================
@@ -910,6 +912,168 @@ canvas#gameCanvas {
   </div>
 
   <script>
+/* === src/security.js === */
+/**
+ * Street Grudge v3 — Frontend Security & Safe Storage Helpers
+ * Zero external dependencies; safe for both browser and Node.js testing.
+ */
+(function (root) {
+  'use strict';
+
+  const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+  const HEX_COLOR_RE = /^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/;
+  const MAX_DEPTH = 12;
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeHexColor(color, fallback = '#111111') {
+    if (typeof color === 'string' && HEX_COLOR_RE.test(color.trim())) {
+      return color.trim();
+    }
+    return fallback;
+  }
+
+  function stripDangerousKeys(value, depth = 0) {
+    if (depth > MAX_DEPTH || value === null || typeof value !== 'object') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => stripDangerousKeys(item, depth + 1));
+    }
+    const clean = Object.create(null);
+    for (const key of Object.keys(value)) {
+      if (DANGEROUS_KEYS.has(key)) continue;
+      clean[key] = stripDangerousKeys(value[key], depth + 1);
+    }
+    return clean;
+  }
+
+  function safeJsonParse(raw, fallback = null, maxBytes = 65536) {
+    if (typeof raw !== 'string' || raw.length === 0 || raw.length > maxBytes) {
+      return fallback;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return stripDangerousKeys(parsed, 0);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function clampInt(value, fallback = 0, min = 0, max = 999999999) {
+    if (value === null || value === undefined || value === '' || typeof value === 'boolean') {
+      return fallback;
+    }
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    const i = Math.trunc(n);
+    if (i < min) return min;
+    if (i > max) return max;
+    return i;
+  }
+
+  function getSafeStorage() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage;
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  function readBoundedInt(storage, key, fallback = 0, min = 0, max = 999999999) {
+    if (!storage || typeof storage.getItem !== 'function') return fallback;
+    try {
+      const raw = storage.getItem(key);
+      if (raw == null || raw === '') return fallback;
+      const trimmed = String(raw).trim();
+      if (trimmed.length > 64) return fallback;
+      if (trimmed.startsWith('{')) {
+        const parsed = safeJsonParse(trimmed, null, 256);
+        if (!parsed || typeof parsed !== 'object') return fallback;
+        return clampInt(parsed.value, fallback, min, max);
+      }
+      if (!/^-?\d+(?:\.\d+)?$/.test(trimmed)) return fallback;
+      return clampInt(trimmed, fallback, min, max);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function writeBoundedInt(storage, key, value, min = 0, max = 999999999) {
+    if (!storage || typeof storage.setItem !== 'function') return false;
+    try {
+      const safe = clampInt(value, min, min, max);
+      storage.setItem(key, String(safe));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /**
+   * Safely renders localized text containing only literal `<b>...</b>` emphasis
+   * tags (and `&amp;` entities) using DOM nodes + textContent (zero innerHTML).
+   */
+  function setSafeFormattedText(el, rawText, doc) {
+    if (!el) return;
+    const ownerDoc = doc || el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+    if (!ownerDoc) return;
+
+    while (el.firstChild) el.removeChild(el.firstChild);
+
+    const text = String(rawText == null ? '' : rawText).replace(/&amp;/g, '&');
+    const tokenRe = /<b>([\s\S]*?)<\/b>/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = tokenRe.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        el.appendChild(ownerDoc.createTextNode(text.slice(lastIndex, match.index)));
+      }
+      const b = ownerDoc.createElement('b');
+      b.textContent = match[1];
+      el.appendChild(b);
+      lastIndex = tokenRe.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      el.appendChild(ownerDoc.createTextNode(text.slice(lastIndex)));
+    }
+  }
+
+  const Security = Object.freeze({
+    DANGEROUS_KEYS,
+    escapeHtml,
+    sanitizeHexColor,
+    stripDangerousKeys,
+    safeJsonParse,
+    clampInt,
+    getSafeStorage,
+    readBoundedInt,
+    writeBoundedInt,
+    setSafeFormattedText
+  });
+
+  if (typeof root !== 'undefined' && root) {
+    root.StreetGrudge = root.StreetGrudge || {};
+    root.StreetGrudge.Security = Security;
+  }
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Security;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
 /* === src/config.js === */
 /**
  * Street Grudge v3 — Configuration, Playable Roster, Rival Roster & Localization (TR/EN)
@@ -4636,6 +4800,9 @@ window.StreetGrudge = window.StreetGrudge || {};
 
   const t = (key) => SG.t(key);
   const AI_STATES = SG.AI_STATES;
+  const SEC = SG.Security;
+  const HI_SCORE_KEY = 'street_grudge_hi';
+  const MAX_HIGH_SCORE = 999999999;
 
   class StreetGrudgeGame {
     constructor() {
@@ -4646,7 +4813,7 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.world = new SG.CityWorld();
       this.sideEngine = new SG.SideFighterEngine(this);
 
-      this.keys = {};
+      this.keys = Object.create(null);
       this.mode = 'sf1p'; // Default to the requested 2-Screen Side-View Street Fighter Search!
       this.selectedFighterIdx = 0;
       this.running = false;
@@ -4675,7 +4842,7 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       this.hitstop = 0;
       this.score = 0;
-      this.highScore = Number(localStorage.getItem('street_grudge_hi') || 0);
+      this.highScore = SEC.readBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, 0, 0, MAX_HIGH_SCORE);
       this.comboCount = 0;
       this.comboTimer = 0;
       this.walkedDist = 0;
@@ -4712,20 +4879,36 @@ window.StreetGrudge = window.StreetGrudge || {};
     renderFighterPicker() {
       const wrap = document.getElementById('fighterPicker');
       if (!wrap) return;
-      wrap.innerHTML = '';
+      const frag = document.createDocumentFragment();
       SG.PLAYABLE_ROSTER.forEach((f, idx) => {
         const btn = document.createElement('button');
         btn.className = `fighter-card comic-border-sm ${idx === this.selectedFighterIdx ? 'fighter-active' : ''}`;
-        btn.innerHTML = `
-          <div class="fighter-swatch" style="background:${f.giColor}; border-color:${f.bandanaColor};"></div>
-          <div class="font-arcade" style="font-size:13px; color:#111;">${f.short}</div>
-          <div class="font-pixel" style="font-size:9px; color:#475569;">${SG.currentLang === 'tr' ? f.roleTr : f.roleEn}</div>`;
+
+        const swatch = document.createElement('div');
+        swatch.className = 'fighter-swatch';
+        swatch.style.background = SEC.sanitizeHexColor(f.giColor, '#f8fafc');
+        swatch.style.borderColor = SEC.sanitizeHexColor(f.bandanaColor, '#111111');
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'font-arcade';
+        nameEl.style.fontSize = '13px';
+        nameEl.style.color = '#111';
+        nameEl.textContent = f.short;
+
+        const roleEl = document.createElement('div');
+        roleEl.className = 'font-pixel';
+        roleEl.style.fontSize = '9px';
+        roleEl.style.color = '#475569';
+        roleEl.textContent = SG.currentLang === 'tr' ? f.roleTr : f.roleEn;
+
+        btn.append(swatch, nameEl, roleEl);
         btn.addEventListener('click', () => {
           this.selectedFighterIdx = idx;
           this.renderFighterPicker();
         });
-        wrap.appendChild(btn);
+        frag.appendChild(btn);
       });
+      wrap.replaceChildren(frag);
     }
 
     bindEvents() {
@@ -4859,38 +5042,73 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.updateControlsLegend();
     }
 
-    updateControlsLegend() {
-      const startCtrl = document.getElementById('startControlsBox');
-      const hudCtrl = document.getElementById('controlsStrip');
-      let html = '';
+    renderControlsLegend(container) {
+      if (!container) return;
+      const frag = document.createDocumentFragment();
+      const addItem = (keyLabel, desc) => {
+        const span = document.createElement('span');
+        const cap = document.createElement('span');
+        cap.className = 'keycap';
+        cap.textContent = keyLabel;
+        span.append(cap, document.createTextNode(` ${desc}`));
+        frag.appendChild(span);
+      };
+      const addPlayerRow = (color, heading, pairs) => {
+        const row = document.createElement('span');
+        row.style.color = color;
+        const b = document.createElement('b');
+        b.textContent = heading;
+        row.append(b, document.createTextNode(' '));
+        pairs.forEach(([k, label], idx) => {
+          if (idx > 0) row.appendChild(document.createTextNode(' '));
+          const cap = document.createElement('span');
+          cap.className = 'keycap';
+          cap.textContent = k;
+          row.appendChild(cap);
+          if (label) row.appendChild(document.createTextNode(label));
+        });
+        frag.appendChild(row);
+      };
+
       if (this.mode === 'sf1p') {
-        html = `
-          <span><span class="keycap">A/D</span> Yürü</span>
-          <span><span class="keycap">W</span> Zıpla / Merdiven-Asansör</span>
-          <span><span class="keycap">S</span> Eğil</span>
-          <span><span class="keycap">J</span> Yumruk</span>
-          <span><span class="keycap">K</span> Tekme</span>
-          <span><span class="keycap">L</span> Blok/Parry</span>
-          <span><span class="keycap">U</span> Hadouken / Süper</span>
-          <span><span class="keycap">W+U</span> Shoryuken</span>
-          <span><span class="keycap">E</span> Bağır</span>`;
+        [
+          ['A/D', 'Yürü'],
+          ['W', 'Zıpla / Merdiven-Asansör'],
+          ['S', 'Eğil'],
+          ['J', 'Yumruk'],
+          ['K', 'Tekme'],
+          ['L', 'Blok/Parry'],
+          ['U', 'Hadouken / Süper'],
+          ['W+U', 'Shoryuken'],
+          ['E', 'Bağır']
+        ].forEach(([k, d]) => addItem(k, d));
       } else if (this.mode === 'sf2p') {
-        html = `
-          <span style="color:#ffe135"><b>P1 (SOL→):</b> <span class="keycap">WASD</span> <span class="keycap">F</span>Yumruk <span class="keycap">G</span>Tekme <span class="keycap">H</span>Blok <span class="keycap">T</span>Özel <span class="keycap">Space</span>Dash <span class="keycap">E</span>Bağır</span>
-          <span style="color:#38bdf8"><b>P2 (←SAĞ):</b> <span class="keycap">Oklar</span> <span class="keycap">J</span>Yumruk <span class="keycap">K</span>Tekme <span class="keycap">L</span>Blok <span class="keycap">U</span>Özel <span class="keycap">Enter</span>Dash <span class="keycap">O</span>Bağır</span>`;
+        addPlayerRow('#ffe135', 'P1 (SOL→):', [
+          ['WASD', ''], ['F', 'Yumruk'], ['G', 'Tekme'], ['H', 'Blok'],
+          ['T', 'Özel'], ['Space', 'Dash'], ['E', 'Bağır']
+        ]);
+        addPlayerRow('#38bdf8', 'P2 (←SAĞ):', [
+          ['Oklar', ''], ['J', 'Yumruk'], ['K', 'Tekme'], ['L', 'Blok'],
+          ['U', 'Özel'], ['Enter', 'Dash'], ['O', 'Bağır']
+        ]);
       } else {
-        html = `
-          <span><span class="keycap">WASD</span> Yürü</span>
-          <span><span class="keycap">J</span> Yumruk</span>
-          <span><span class="keycap">K</span> Tekme</span>
-          <span><span class="keycap">L</span> Blok/Parry</span>
-          <span><span class="keycap">U</span> Özel/Süper</span>
-          <span><span class="keycap">C</span> Silah Fırlat</span>
-          <span><span class="keycap">Space</span> Dash</span>
-          <span><span class="keycap">E</span> Bağır</span>`;
+        [
+          ['WASD', 'Yürü'],
+          ['J', 'Yumruk'],
+          ['K', 'Tekme'],
+          ['L', 'Blok/Parry'],
+          ['U', 'Özel/Süper'],
+          ['C', 'Silah Fırlat'],
+          ['Space', 'Dash'],
+          ['E', 'Bağır']
+        ].forEach(([k, d]) => addItem(k, d));
       }
-      startCtrl.innerHTML = html;
-      hudCtrl.innerHTML = html;
+      container.replaceChildren(frag);
+    }
+
+    updateControlsLegend() {
+      this.renderControlsLegend(document.getElementById('startControlsBox'));
+      this.renderControlsLegend(document.getElementById('controlsStrip'));
     }
 
     toggleMute() {
@@ -4916,13 +5134,13 @@ window.StreetGrudge = window.StreetGrudge || {};
 
     syncLanguageUI() {
       document.getElementById('startSubtitle').textContent = t('subtitle');
-      document.getElementById('startPitch').innerHTML = t('pitch');
+      SEC.setSafeFormattedText(document.getElementById('startPitch'), t('pitch'));
       document.getElementById('card1Title').textContent = t('card1Title');
-      document.getElementById('card1Body').innerHTML = t('card1Body');
+      SEC.setSafeFormattedText(document.getElementById('card1Body'), t('card1Body'));
       document.getElementById('card2Title').textContent = t('card2Title');
-      document.getElementById('card2Body').innerHTML = t('card2Body');
+      SEC.setSafeFormattedText(document.getElementById('card2Body'), t('card2Body'));
       document.getElementById('card3Title').textContent = t('card3Title');
-      document.getElementById('card3Body').innerHTML = t('card3Body');
+      SEC.setSafeFormattedText(document.getElementById('card3Body'), t('card3Body'));
       document.getElementById('pickFighterLabel').textContent = t('pickFighter');
       document.getElementById('btnStartGame').textContent = t('startBtn');
       document.getElementById('btnPlayAgain').textContent = t('playAgainBtn');
@@ -5512,8 +5730,8 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.running = false;
 
       if (this.score > this.highScore) {
-        this.highScore = this.score;
-        localStorage.setItem('street_grudge_hi', String(this.highScore));
+        this.highScore = SEC.clampInt(this.score, this.highScore, 0, MAX_HIGH_SCORE);
+        SEC.writeBoundedInt(SEC.getSafeStorage(), HI_SCORE_KEY, this.highScore, 0, MAX_HIGH_SCORE);
       }
 
       const modal = document.getElementById('endModal');
@@ -6180,11 +6398,19 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       // Rival Checklist Badges
       const listEl = document.getElementById('rivalChecklist');
-      listEl.innerHTML = this.rivals.map((rv) => {
-        const icon = rv.ko ? '💀' : (rv.aiState === AI_STATES.CALMED ? '☕' : '🔥');
-        const bg = rv.ko ? '#334155' : (rv.aiState === AI_STATES.CALMED ? '#0369a1' : '#b91c1c');
-        return `<span class="rival-chip" style="background:${bg}">${icon}${rv.short}</span>`;
-      }).join('');
+      if (listEl) {
+        const frag = document.createDocumentFragment();
+        for (const rv of this.rivals) {
+          const icon = rv.ko ? '💀' : (rv.aiState === AI_STATES.CALMED ? '☕' : '🔥');
+          const bg = rv.ko ? '#334155' : (rv.aiState === AI_STATES.CALMED ? '#0369a1' : '#b91c1c');
+          const chip = document.createElement('span');
+          chip.className = 'rival-chip';
+          chip.style.background = bg;
+          chip.textContent = `${icon}${rv.short}`;
+          frag.appendChild(chip);
+        }
+        listEl.replaceChildren(frag);
+      }
 
       const comboBox = document.getElementById('comboBox');
       if (this.comboCount >= 2) {

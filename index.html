@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" />
   <title>STREET GRUDGE v3 — Split-Screen Street Fighter & Open-World</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -212,6 +214,7 @@
   </div>
 
   <!-- MODULAR ENGINE SCRIPTS (100% Offline, Zero Server Needed) -->
+  <script defer src="src/security.js"></script>
   <script defer src="src/config.js"></script>
   <script defer src="src/audio.js"></script>
   <script defer src="src/world.js"></script>

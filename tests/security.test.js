@@ -40,7 +40,7 @@ test('index.html enforces Referrer-Policy, strict CSP, and loads src/security.js
   assert.doesNotMatch(csp, /script-src[^;]*'unsafe-eval'/);
   assert.match(csp, /object-src\s+'none'/);
   assert.match(csp, /base-uri\s+'self'/);
-  assert.match(csp, /form-action\s+'self'/);
+  assert.match(csp, /form-action\s+'none'/);
   assert.doesNotMatch(html, /\son(?:click|load|error|change|input|submit|keydown|keyup|mouseover)=/i);
 
   const secPos = html.indexOf('src="src/security.js"');
@@ -48,13 +48,16 @@ test('index.html enforces Referrer-Policy, strict CSP, and loads src/security.js
   assert.ok(secPos > -1 && gamePos > secPos, 'src/security.js must be loaded before src/game.js');
 });
 
-test('street-grudge-tek-dosya.html enforces Referrer-Policy and safe CSP', () => {
+test('street-grudge-tek-dosya.html enforces Referrer-Policy and strict hash-based CSP', () => {
   const html = read('street-grudge-tek-dosya.html');
   assert.match(html, /<meta\s+name="referrer"\s+content="no-referrer"\s*\/?>/i);
   const cspMatch = html.match(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]+)"\s*\/?>/i);
   assert.ok(cspMatch, 'street-grudge-tek-dosya.html must define a CSP meta tag');
+  assert.doesNotMatch(cspMatch[1], /script-src[^;]*'unsafe-inline'/);
+  assert.match(cspMatch[1], /script-src[^;]*'sha256-[A-Za-z0-9+/]+=*'/);
   assert.match(cspMatch[1], /object-src\s+'none'/);
   assert.match(cspMatch[1], /base-uri\s+'self'/);
+  assert.match(cspMatch[1], /form-action\s+'none'/);
   assert.doesNotMatch(cspMatch[1], /'unsafe-eval'/);
 });
 

@@ -32,4 +32,4 @@ jobs:
           bash -n OYUNU_BASLAT.command
 
       - name: Run unit and smoke tests
-        run: node --test tests/security.test.js tests/smoke.test.mjs
+        run: node --test tests/security.test.js tests/security-and-syntax.test.mjs tests/smoke.test.mjs

@@ -1,6 +1,7 @@
 /**
- * Street Grudge — Cel-Shaded Comic-Book 2D Top-Down Renderer
- * Supports single-screen camera AND automatic 2P split-screen -> merged brawl camera!
+ * Street Grudge v3 — Cel-Shaded Comic-Book 2D Top-Down Renderer
+ * Adds: Dynamic Day/Sunset/Evening Lighting, Comic Speedlines, Kiosks, Pigeons,
+ * Street Weapons, KO Chalk Decals, Segway Mall Cop, and 2P Split-Screen!
  */
 window.StreetGrudge = window.StreetGrudge || {};
 
@@ -26,7 +27,6 @@ window.StreetGrudge = window.StreetGrudge || {};
       if (game.running && game.mode === '2p' && game.isSplitScreen) {
         const halfW = Math.floor(vw / 2);
 
-        // Left Viewport: Player 1
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, halfW, vh);
@@ -35,7 +35,6 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.drawViewportBadge(ctx, 14, vh - 36, 'P1 CAM', '#ffe135', '#dc2626');
         ctx.restore();
 
-        // Right Viewport: Player 2
         ctx.save();
         ctx.beginPath();
         ctx.rect(halfW, 0, vw - halfW, vh);
@@ -44,7 +43,6 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.drawViewportBadge(ctx, vw - 98, vh - 36, 'P2 CAM', '#38bdf8', '#1d4ed8');
         ctx.restore();
 
-        // Bold Comic Ink Split-Screen Divider
         ctx.fillStyle = '#111111';
         ctx.fillRect(halfW - 3, 0, 6, vh);
         ctx.fillStyle = '#ffe135';
@@ -53,23 +51,63 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.renderWorldViewport(ctx, game, game.cam, 0, 0, vw, vh);
       }
 
+      // Dynamic Time-of-Day Atmosphere (Morning -> Golden Sunset -> Neon Dusk!)
+      this.drawTimeOfDayOverlay(ctx, vw, vh, game.dayMinutes);
+
+      // Dramatic Comic Speedlines during Ultra Super or Dash!
+      if (game.speedlineTimer > 0) {
+        this.drawComicSpeedlines(ctx, vw, vh, game.speedlineTimer);
+      }
+
       if (game.running && game.player) {
-        if (game.mode === '1p') {
-          this.drawOffscreenRivalPointers(ctx, game);
-        }
+        if (game.mode === '1p') this.drawOffscreenRivalPointers(ctx, game);
         this.drawMinimap(game);
       }
 
-      // Subway Express Animated Comic Overlay
       if (game.subwayOverlayTimer > 0) {
         this.drawSubwayExpressTransition(ctx, vw, vh, game.subwayOverlayTimer);
       }
 
-      // KO / Hit White Comic Flash
       if (game.screenFlash > 0) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${game.screenFlash * 0.65})`;
+        ctx.fillStyle = game.flashColor
+          ? `${game.flashColor}${Math.min(0.65, game.screenFlash * 0.7)})`
+          : `rgba(255, 255, 255, ${game.screenFlash * 0.65})`;
         ctx.fillRect(0, 0, vw, vh);
       }
+    }
+
+    drawTimeOfDayOverlay(ctx, vw, vh, dayMinutes) {
+      // 09:00 (540) -> noon clear; 11:00+ (660) warm afternoon; 12:30+ (750) golden sunset; 14:00+ (840) neon twilight
+      const elapsed = Math.max(0, dayMinutes - 540);
+      if (elapsed < 65) return;
+      if (elapsed < 170) {
+        const a = Math.min(0.16, ((elapsed - 65) / 105) * 0.16);
+        ctx.fillStyle = `rgba(251, 146, 60, ${a})`; // Warm golden sunset glow
+        ctx.fillRect(0, 0, vw, vh);
+      } else {
+        const a = Math.min(0.28, 0.14 + ((elapsed - 170) / 120) * 0.14);
+        ctx.fillStyle = `rgba(30, 27, 75, ${a})`; // Cool neon evening
+        ctx.fillRect(0, 0, vw, vh);
+      }
+    }
+
+    drawComicSpeedlines(ctx, vw, vh, timer) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.75, timer * 2.2);
+      ctx.strokeStyle = '#ffe135';
+      ctx.lineWidth = 3;
+      const cx = vw / 2, cy = vh / 2;
+      const maxR = Math.hypot(cx, cy) + 40;
+      const phase = performance.now() * 0.01;
+      for (let i = 0; i < 32; i++) {
+        const ang = (i / 32) * Math.PI * 2 + Math.sin(phase + i) * 0.03;
+        const innerR = Math.min(vw, vh) * (0.34 + (i % 3) * 0.05);
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * innerR, cy + Math.sin(ang) * innerR);
+        ctx.lineTo(cx + Math.cos(ang) * maxR, cy + Math.sin(ang) * maxR);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     drawViewportBadge(ctx, x, y, label, bg, fg) {
@@ -88,14 +126,13 @@ window.StreetGrudge = window.StreetGrudge || {};
     drawSubwayExpressTransition(ctx, vw, vh, timer) {
       const alpha = Math.min(1, timer * 2.5);
       ctx.save();
-      ctx.globalAlpha = alpha * 0.85;
+      ctx.globalAlpha = alpha * 0.88;
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, vh * 0.40, vw, vh * 0.20);
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 4;
       ctx.strokeRect(0, vh * 0.40, vw, vh * 0.20);
 
-      // Animated streaking subway train cars
       const progress = 1 - Math.min(1, timer / 0.65);
       const trainX = -320 + progress * (vw + 640);
       ctx.fillStyle = '#e2e8f0';
@@ -121,23 +158,29 @@ window.StreetGrudge = window.StreetGrudge || {};
       ctx.scale(cam.zoom, cam.zoom);
       ctx.translate(-cam.x, -cam.y);
 
+      const isEvening = (game.dayMinutes - 540) >= 160;
+
       this.drawCityGround(ctx, game.world);
       this.drawRoadsAndTrafficLights(ctx, game.world);
+      this.drawKoChalkDecals(ctx, game.koDecals);
       this.drawSubwaysAndElevators(ctx, game.world);
+      this.drawKiosks(ctx, game.world);
       this.drawProps(ctx, game.world);
       this.drawPickups(ctx, game.pickups);
       this.drawSoundRings(ctx, game.soundRings);
       this.drawAfterimages(ctx, game.afterimages);
       this.drawPedestrians(ctx, game.pedestrians);
-      this.drawCars(ctx, game.cars);
+      this.drawCars(ctx, game.cars, isEvening);
 
       for (const r of game.rivals) this.drawFighter(ctx, r, game.showAiDebug);
+      if (game.mallCop && !game.mallCop.ko) this.drawFighter(ctx, game.mallCop, game.showAiDebug);
       if (game.player2) this.drawFighter(ctx, game.player2, game.showAiDebug);
       if (game.player) this.drawFighter(ctx, game.player, game.showAiDebug);
 
       this.drawProjectiles(ctx, game.projectiles);
       this.drawBuildings3DRoof(ctx, game.world, cam);
       this.drawTrees(ctx, game.world);
+      this.drawPigeons(ctx, game.world.pigeons);
       this.drawParticles(ctx, game.particles);
       this.drawSpeechBubbles(ctx, game);
       this.drawPopups(ctx, game.popups);
@@ -160,7 +203,6 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(SG.WORLD_W, y); ctx.stroke();
       }
 
-      // Uptown Marble Plaza + Animated Fountain
       ctx.fillStyle = '#cbd5e1';
       ctx.strokeStyle = '#111';
       ctx.lineWidth = 3;
@@ -177,7 +219,6 @@ window.StreetGrudge = window.StreetGrudge || {};
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(f.x, f.y, 6 + ripple, 0, Math.PI * 2); ctx.stroke();
 
-      // Downtown Parking Lot
       ctx.fillStyle = '#475569';
       ctx.fillRect(1040, 1455, 335, 105);
       ctx.strokeStyle = '#facc15';
@@ -186,14 +227,12 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.beginPath(); ctx.moveTo(x, 1465); ctx.lineTo(x, 1545); ctx.stroke();
       }
 
-      // Library Back Alley
       ctx.fillStyle = '#a8a29e';
       ctx.fillRect(360, 575, 410, 100);
       ctx.font = 'bold 14px "Courier New", monospace';
       ctx.fillStyle = 'rgba(220, 38, 38, 0.55)';
       ctx.fillText('← LIBRARY ALLEY — NO LOITERING', 405, 632);
 
-      // Street Floor Landmarks
       ctx.font = '900 13px "Courier New", monospace';
       ctx.textAlign = 'center';
       for (const lm of world.landmarks) {
@@ -201,6 +240,64 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.fillText(lm.name, lm.x, lm.y + 52);
       }
       ctx.textAlign = 'left';
+    }
+
+    drawKoChalkDecals(ctx, decals) {
+      for (const d of decals) {
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 26, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.font = '900 11px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`K.O. ${d.short}`, 0, 4);
+        ctx.restore();
+      }
+    }
+
+    drawKiosks(ctx, world) {
+      for (const k of world.kiosks) {
+        const ready = k.cooldown <= 0;
+        // Pulsing interaction ring when ready!
+        if (ready) {
+          const p = 1 + Math.sin(performance.now() * 0.008) * 0.1;
+          ctx.strokeStyle = k.kind === 'espresso' ? '#f97316' : '#22c55e';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(k.x, k.y, 44 * p, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Comic striped kiosk awning
+        ctx.fillStyle = 'rgba(0,0,0,0.24)';
+        ctx.fillRect(k.x - 24, k.y - 16, 54, 38);
+        ctx.fillStyle = k.kind === 'espresso' ? '#9a3412' : '#15803d';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.fillRect(k.x - 26, k.y - 18, 52, 36);
+        ctx.strokeRect(k.x - 26, k.y - 18, 52, 36);
+
+        // Awning stripes
+        ctx.fillStyle = '#fef3c7';
+        for (let sx = -20; sx < 24; sx += 14) {
+          ctx.fillRect(k.x + sx, k.y - 18, 7, 36);
+        }
+        ctx.strokeRect(k.x - 26, k.y - 18, 52, 36);
+
+        ctx.font = 'bold 10px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#111';
+        ctx.fillRect(k.x - 42, k.y - 34, 84, 14);
+        ctx.fillStyle = ready ? '#ffe135' : '#94a3b8';
+        ctx.fillText(ready ? `${k.kind === 'espresso' ? '☕' : '🌮'} ${k.label}` : `WAIT ${Math.ceil(k.cooldown)}s`, k.x, k.y - 23);
+        ctx.textAlign = 'left';
+      }
     }
 
     drawRoadsAndTrafficLights(ctx, world) {
@@ -356,14 +453,45 @@ window.StreetGrudge = window.StreetGrudge || {};
             ctx.fillStyle = '#94a3b8';
             ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
           }
+        } else if (p.type === 'cone' && !p.broken) {
+          ctx.fillStyle = '#f97316';
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 3.5, 0, Math.PI * 2); ctx.fill();
         } else if (p.type === 'parked_car') {
-          this.drawCarShape(ctx, p.x + sx, p.y + sy, p.w, p.h, p.color, false, p.alarmTimer > 0);
+          this.drawCarShape(ctx, p.x + sx, p.y + sy, p.w, p.h, p.color, false, p.alarmTimer > 0, false, null);
         }
       }
     }
 
-    drawCarShape(ctx, x, y, w, h, color, isTaxi = false, alarmOn = false) {
+    drawCarShape(ctx, x, y, w, h, color, isTaxi, alarmOn, isEvening, car) {
       const hw = w / 2, hh = h / 2;
+
+      // Glowing headlight beams in evening!
+      if (isEvening && car) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.28)';
+        ctx.beginPath();
+        if (car.axis === 'h') {
+          const fx = x + car.dir * hw;
+          ctx.moveTo(fx, y - hh * 0.6);
+          ctx.lineTo(fx + car.dir * 95, y - hh * 1.4);
+          ctx.lineTo(fx + car.dir * 95, y + hh * 1.4);
+          ctx.lineTo(fx, y + hh * 0.6);
+        } else {
+          const fy = y + car.dir * hh;
+          ctx.moveTo(x - hw * 0.6, fy);
+          ctx.lineTo(x - hw * 1.4, fy + car.dir * 95);
+          ctx.lineTo(x + hw * 1.4, fy + car.dir * 95);
+          ctx.lineTo(x + hw * 0.6, fy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
       ctx.fillStyle = 'rgba(0,0,0,0.28)';
       ctx.fillRect(x - hw + 5, y - hh + 6, w, h);
 
@@ -396,8 +524,8 @@ window.StreetGrudge = window.StreetGrudge || {};
       }
     }
 
-    drawCars(ctx, cars) {
-      for (const c of cars) this.drawCarShape(ctx, c.x, c.y, c.w, c.h, c.color, c.isTaxi, false);
+    drawCars(ctx, cars, isEvening) {
+      for (const c of cars) this.drawCarShape(ctx, c.x, c.y, c.w, c.h, c.color, c.isTaxi, false, isEvening, c);
     }
 
     drawPedestrians(ctx, peds) {
@@ -434,19 +562,46 @@ window.StreetGrudge = window.StreetGrudge || {};
       }
     }
 
+    drawPigeons(ctx, pigeons) {
+      for (const pg of pigeons) {
+        ctx.save();
+        // Ground shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath(); ctx.ellipse(pg.x + 2, pg.y + 4, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Pigeon body lifted by z altitude
+        ctx.translate(pg.x, pg.y - pg.z);
+        ctx.rotate(pg.angle);
+        const wing = pg.flying ? Math.sin(pg.flap) * 7 : 0;
+        ctx.fillStyle = '#94a3b8';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(0, 0, 6, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        if (pg.flying) {
+          ctx.beginPath();
+          ctx.moveTo(0, -3); ctx.lineTo(-4, -9 - wing);
+          ctx.moveTo(0, 3);  ctx.lineTo(-4, 9 + wing);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
     drawPickups(ctx, pickups) {
+      const iconMap = { espresso: '☕', taco: '🌮', lid: '🛡️', briefcase: '💼', cone: '🚧' };
+      const bgMap   = { espresso: '#f97316', taco: '#22c55e', lid: '#94a3b8', briefcase: '#92400e', cone: '#fb923c' };
       for (const pk of pickups) {
         const yOff = Math.sin(pk.bob) * 4;
         ctx.save();
         ctx.translate(pk.x, pk.y + yOff);
-        ctx.fillStyle = pk.kind === 'espresso' ? '#f97316' : '#22c55e';
+        ctx.fillStyle = bgMap[pk.kind] || '#facc15';
         ctx.strokeStyle = '#111';
         ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.font = '14px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(pk.kind === 'espresso' ? '☕' : '🌮', 0, 1);
+        ctx.fillText(iconMap[pk.kind] || '★', 0, 1);
         ctx.restore();
       }
     }
@@ -460,6 +615,17 @@ window.StreetGrudge = window.StreetGrudge || {};
       ctx.ellipse(3, 6, f.r * 1.05, f.r * 0.85, 0, 0, Math.PI * 2);
       ctx.fill();
 
+      // Caffeine Rush golden speed ring!
+      if (!f.ko && f.caffeineTimer > 0) {
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r + 12, performance.now() * 0.01, performance.now() * 0.01 + Math.PI * 1.8);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       if (!f.ko && f.grudge >= 70 && (f.isPlayer || f.aiState === SG.AI_STATES.COMBAT)) {
         const pulse = 1 + Math.sin(performance.now() * 0.015) * 0.12;
         ctx.strokeStyle = f.playerNum === 2 ? 'rgba(56, 189, 248, 0.78)' : 'rgba(239, 68, 68, 0.75)';
@@ -469,11 +635,12 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.stroke();
       }
 
+      // Guard / Perfect Parry Golden Shield Arc!
       if (f.blocking && !f.ko) {
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = f.parryWindow > 0 ? '#ffe135' : '#38bdf8';
+        ctx.lineWidth = f.parryWindow > 0 ? 6 : 4;
         ctx.beginPath();
-        ctx.arc(0, 0, f.r + 8, f.angle - 1.0, f.angle + 1.0);
+        ctx.arc(0, 0, f.r + 8, f.angle - 1.05, f.angle + 1.05);
         ctx.stroke();
       }
 
@@ -505,6 +672,15 @@ window.StreetGrudge = window.StreetGrudge || {};
         ? f.angle + (1 - f.attackTimer / f.attackDuration) * Math.PI * 6
         : f.angle;
       ctx.rotate(drawAngle);
+
+      // Segway Scooter wheels under Mall Cop!
+      if (f.isCop) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(-6, -24, 14, 7);
+        ctx.fillRect(-6, 17, 14, 7);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(-4, -18, 10, 36);
+      }
 
       const swing = Math.sin(f.walkCycle) * 5;
       let leftArmX = 6 + swing, leftArmY = -f.r * 0.85;
@@ -540,16 +716,18 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       const hitWhite = f.flashTimer > 0;
       const flutter = Math.sin(performance.now() * 0.015 + f.x * 0.05) * 4;
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-8, -3); ctx.quadraticCurveTo(-18, -7 + flutter, -26, -4 + flutter * 1.4);
-      ctx.moveTo(-8, 3);  ctx.quadraticCurveTo(-18, 7 + flutter, -25, 6 + flutter * 1.2);
-      ctx.stroke();
-      ctx.strokeStyle = f.bandanaColor;
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      if (!f.isCop) {
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-8, -3); ctx.quadraticCurveTo(-18, -7 + flutter, -26, -4 + flutter * 1.4);
+        ctx.moveTo(-8, 3);  ctx.quadraticCurveTo(-18, 7 + flutter, -25, 6 + flutter * 1.2);
+        ctx.stroke();
+        ctx.strokeStyle = f.bandanaColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
 
       if (kickExtend > 2) {
         ctx.fillStyle = hitWhite ? '#ffffff' : f.trimColor;
@@ -579,6 +757,17 @@ window.StreetGrudge = window.StreetGrudge || {};
       ctx.beginPath(); ctx.arc(leftArmX, leftArmY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.beginPath(); ctx.arc(rightArmX, rightArmY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
+      // Held Street Weapon Icon right in fighter's hand!
+      if (f.weapon) {
+        ctx.save();
+        ctx.translate(rightArmX + 8, rightArmY + 2);
+        ctx.fillStyle = f.weapon === 'lid' ? '#cbd5e1' : (f.weapon === 'briefcase' ? '#92400e' : '#f97316');
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+
       ctx.fillStyle = hitWhite ? '#ffffff' : f.skinColor;
       ctx.beginPath(); ctx.arc(2, 0, f.r * 0.56, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 
@@ -588,11 +777,18 @@ window.StreetGrudge = window.StreetGrudge || {};
       ctx.closePath();
       ctx.fill(); ctx.stroke();
 
-      ctx.strokeStyle = f.bandanaColor;
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.arc(2, 0, f.r * 0.53, -0.8, 0.8);
-      ctx.stroke();
+      if (f.isCop) {
+        // Flashing Police Cap Siren!
+        const redOn = Math.floor(performance.now() / 140) % 2 === 0;
+        ctx.fillStyle = redOn ? '#ef4444' : '#3b82f6';
+        ctx.beginPath(); ctx.arc(1, 0, 5.5, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.strokeStyle = f.bandanaColor;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(2, 0, f.r * 0.53, -0.8, 0.8);
+        ctx.stroke();
+      }
 
       ctx.restore();
 
@@ -603,10 +799,16 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.fillRect(f.x - barW / 2 - 1, f.y - f.r - 17, barW + 2, 7);
         ctx.fillStyle = '#991b1b';
         ctx.fillRect(f.x - barW / 2, f.y - f.r - 16, barW, 5);
-        ctx.fillStyle = f.aiState === SG.AI_STATES.CALMED ? '#38bdf8' : '#facc15';
+        ctx.fillStyle = f.isCop ? '#38bdf8' : (f.aiState === SG.AI_STATES.CALMED ? '#38bdf8' : '#facc15');
         ctx.fillRect(f.x - barW / 2, f.y - f.r - 16, barW * (f.hp / f.maxHp), 5);
 
-        if (f.aiState === SG.AI_STATES.CALMED) {
+        if (f.isCop) {
+          ctx.font = '900 10px "Courier New", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText('SEGWAY COP', f.x, f.y - f.r - 22);
+          ctx.textAlign = 'left';
+        } else if (f.aiState === SG.AI_STATES.CALMED) {
           ctx.font = 'bold 12px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('☕🤷', f.x, f.y - f.r - 22);
@@ -634,7 +836,8 @@ window.StreetGrudge = window.StreetGrudge || {};
         ctx.font = '900 10px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#111';
-        ctx.fillText(`P${f.playerNum}`, f.x, f.y - f.r - 22);
+        const tag = f.weapon ? `P${f.playerNum} [C]` : `P${f.playerNum}`;
+        ctx.fillText(tag, f.x, f.y - f.r - 22);
         ctx.textAlign = 'left';
       }
     }
@@ -707,15 +910,28 @@ window.StreetGrudge = window.StreetGrudge || {};
     }
 
     drawProjectiles(ctx, projectiles) {
+      const iconMap = { lid: '🛡️', briefcase: '💼', cone: '🚧' };
       for (const pr of projectiles) {
         ctx.save();
         ctx.translate(pr.x, pr.y);
-        ctx.fillStyle = pr.color;
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, pr.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(0, 0, pr.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        if (pr.weaponKind) {
+          ctx.rotate(performance.now() * 0.02);
+          ctx.fillStyle = pr.color;
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.arc(0, 0, pr.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.font = '15px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(iconMap[pr.weaponKind] || '★', 0, 1);
+        } else {
+          ctx.fillStyle = pr.color;
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(0, 0, pr.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(0, 0, pr.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        }
         ctx.restore();
       }
     }
@@ -754,7 +970,7 @@ window.StreetGrudge = window.StreetGrudge || {};
     }
 
     drawSpeechBubbles(ctx, game) {
-      const speakers = [game.player, game.player2, ...game.rivals, ...game.pedestrians]
+      const speakers = [game.player, game.player2, game.mallCop, ...game.rivals, ...game.pedestrians]
         .filter((s) => s && s.speechTimer > 0 && s.speech);
       ctx.font = 'bold 12px "Trebuchet MS", sans-serif';
       for (const s of speakers) {
@@ -763,7 +979,7 @@ window.StreetGrudge = window.StreetGrudge || {};
         const bw = textW + padX * 2;
         const bh = 24;
         const bx = s.x - bw / 2;
-        const by = s.y - (s.r || 16) - 46;
+        const by = s.y - (s.r || 16) - 48;
 
         ctx.fillStyle = '#ffffff';
         ctx.strokeStyle = '#111';
@@ -813,7 +1029,7 @@ window.StreetGrudge = window.StreetGrudge || {};
         if (sx > 20 && sx < game.viewW - 20 && sy > 20 && sy < game.viewH - 20) continue;
 
         const dist = Math.hypot(r.x - game.player.x, r.y - game.player.y);
-        if (dist > 1100) continue;
+        if (dist > 1150) continue;
 
         const ang = Math.atan2(sy - game.viewH / 2, sx - game.viewW / 2);
         const px = Math.max(margin, Math.min(game.viewW - margin, game.viewW / 2 + Math.cos(ang) * (game.viewW * 0.44)));
@@ -858,6 +1074,12 @@ window.StreetGrudge = window.StreetGrudge || {};
         mctx.fillRect(sub.x * sx, sub.y * sy, Math.max(6, sub.w * sx), Math.max(6, sub.h * sy));
       }
 
+      // Kiosks (Green/Orange dots)
+      for (const k of game.world.kiosks) {
+        mctx.fillStyle = k.kind === 'espresso' ? '#f97316' : '#22c55e';
+        mctx.fillRect(k.x * sx - 2, k.y * sy - 2, 5, 5);
+      }
+
       const pulse = 3 + Math.sin(performance.now() * 0.01) * 1.3;
       for (const r of game.rivals) {
         const rx = r.x * sx, ry = r.y * sy;
@@ -873,7 +1095,14 @@ window.StreetGrudge = window.StreetGrudge || {};
         }
       }
 
-      // P2 Cyan Dot (in 2P mode)
+      // Flashing Mall Cop dot!
+      if (game.mallCop && !game.mallCop.ko) {
+        mctx.fillStyle = Math.floor(performance.now() / 160) % 2 === 0 ? '#ef4444' : '#3b82f6';
+        mctx.beginPath();
+        mctx.arc(game.mallCop.x * sx, game.mallCop.y * sy, 3.8, 0, Math.PI * 2);
+        mctx.fill();
+      }
+
       if (game.player2) {
         mctx.fillStyle = '#38bdf8';
         mctx.strokeStyle = '#111';
@@ -883,7 +1112,6 @@ window.StreetGrudge = window.StreetGrudge || {};
         mctx.fill(); mctx.stroke();
       }
 
-      // P1 Yellow Dot
       if (game.player) {
         mctx.fillStyle = '#ffe135';
         mctx.strokeStyle = '#111';

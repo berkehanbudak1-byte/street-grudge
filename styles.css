@@ -618,3 +618,79 @@ canvas#gameCanvas {
   .primary-cta { width: 100%; }
   #touchControls.active { display: flex; }
 }
+
+/* =========================================================================
+   v3 ADDITIONS: SUPER GAUGE, 3-MODE SELECTOR, FIGHTER ROSTER & RIVAL TRACKER
+   ========================================================================= */
+.super-track {
+  margin-top: 3px;
+  height: 6px;
+  background: #0f172a;
+  border: 2px solid #111;
+  overflow: hidden;
+}
+.super-fill {
+  height: 100%;
+  background: #38bdf8;
+  transition: width 0.12s linear;
+}
+
+.util-btn.emerald { background: #d1fae5; }
+
+.mode-row.mode-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.mode-row.mode-3 .mode-btn {
+  font-size: 12px;
+  padding: 8px 6px;
+  line-height: 1.2;
+}
+
+.fighter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+.fighter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 5px;
+  background: #ffffff;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: center;
+}
+.fighter-card.fighter-active {
+  background: #fef08a;
+  transform: translateY(-2px);
+}
+.fighter-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 4px solid #ef4444;
+  box-shadow: 0 0 0 2px #111;
+}
+
+.rival-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 3px;
+  max-width: 210px;
+}
+.rival-chip {
+  padding: 1px 5px;
+  border: 1.5px solid #111;
+  border-radius: 4px;
+  font-size: 9px;
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .mode-row.mode-3 { grid-template-columns: 1fr; }
+  .fighter-grid { grid-template-columns: repeat(2, 1fr); }
+}

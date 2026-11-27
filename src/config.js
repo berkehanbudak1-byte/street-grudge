@@ -1,6 +1,5 @@
 /**
- * Street Grudge — Configuration, Localization (EN/TR), and Character Roster
- * Clean modular namespace (works directly via file:// without a local server).
+ * Street Grudge v3 — Configuration, Playable Roster, Rival Roster & Localization (TR/EN)
  */
 window.StreetGrudge = window.StreetGrudge || {};
 
@@ -9,7 +8,7 @@ window.StreetGrudge = window.StreetGrudge || {};
 
   SG.WORLD_W = 3000;
   SG.WORLD_H = 2200;
-  SG.DOWNTOWN_SPLIT_X = 1520; // West = Downtown, East = Uptown
+  SG.DOWNTOWN_SPLIT_X = 1520;
 
   // Explicit Enemy AI Finite State Machine states
   SG.AI_STATES = Object.freeze({
@@ -19,23 +18,215 @@ window.StreetGrudge = window.StreetGrudge || {};
     CALMED: 'CalmedDown'
   });
 
+  // 4 Playable Fighters with Distinct Stats & Special Moves
+  SG.PLAYABLE_ROSTER = [
+    {
+      id: 'kerem',
+      name: 'KEREM "HADOU-KAHVE"',
+      short: 'KEREM',
+      roleTr: 'Dengeli Karateci • Ateş Topu',
+      roleEn: 'Balanced Karateka • Fireball',
+      giColor: '#f8fafc',
+      trimColor: '#111111',
+      skinColor: '#f5cfa0',
+      hairColor: '#271c15',
+      bandanaColor: '#ef4444',
+      r: 20,
+      maxHp: 125,
+      speed: 260,
+      powerMult: 1.0,
+      specialKind: 'fireball',
+      specialNameTr: 'KİN HADOU-DALGASI!!',
+      specialNameEn: 'PETTY HADOU-BLAST!!',
+      specialColor: '#f97316'
+    },
+    {
+      id: 'demir',
+      name: 'DEMİR "BÜRO TANKI"',
+      short: 'DEMİR',
+      roleTr: 'Ağır Dövüşçü (+HP) • Asfalt Şoku',
+      roleEn: 'Heavy Tank (+HP) • Asphalt Slam',
+      giColor: '#4d7c0f',
+      trimColor: '#facc15',
+      skinColor: '#e9b98a',
+      hairColor: '#1c1917',
+      bandanaColor: '#f97316',
+      r: 23,
+      maxHp: 155,
+      speed: 228,
+      powerMult: 1.18,
+      specialKind: 'shockwave',
+      specialNameTr: 'ASFALT DEPREMİ!!',
+      specialNameEn: 'ASPHALT SLAM!!',
+      specialColor: '#84cc16'
+    },
+    {
+      id: 'zeynep',
+      name: 'ZEYNEP "METRO RÜZGARI"',
+      short: 'ZEYNEP',
+      roleTr: 'Çok Hızlı • Kasırga Tekmesi',
+      roleEn: 'Ultra Fast • Cyclone Spin',
+      giColor: '#facc15',
+      trimColor: '#111111',
+      skinColor: '#fde2c4',
+      hairColor: '#18181b',
+      bandanaColor: '#3b82f6',
+      r: 18,
+      maxHp: 112,
+      speed: 292,
+      powerMult: 0.96,
+      specialKind: 'cyclone',
+      specialNameTr: 'METRO KASIRGASI!!',
+      specialNameEn: 'SUBWAY CYCLONE!!',
+      specialColor: '#38bdf8'
+    },
+    {
+      id: 'kadir',
+      name: 'KADİR "KALDIRIM KRALI"',
+      short: 'KADİR',
+      roleTr: 'Agresif • 3\'lü Alev Yayılımı',
+      roleEn: 'Aggressive • Triple Flame Wave',
+      giColor: '#dc2626',
+      trimColor: '#fde047',
+      skinColor: '#f0c294',
+      hairColor: '#fbbf24',
+      bandanaColor: '#111111',
+      r: 20,
+      maxHp: 122,
+      speed: 266,
+      powerMult: 1.08,
+      specialKind: 'triple_flame',
+      specialNameTr: 'ÜÇLÜ KİN ALEVİ!!',
+      specialNameEn: 'TRIPLE PETTY FLAME!!',
+      specialColor: '#fb923c'
+    }
+  ];
+
+  // 6 Distinct AI Rival Fighters
+  SG.RIVAL_ROSTER = [
+    {
+      id: 'ryo',
+      name: 'RYO "COMMUTER"',
+      short: 'RYO',
+      giColor: '#facc15',
+      trimColor: '#111111',
+      skinColor: '#f5cfa0',
+      hairColor: '#1e1b18',
+      bandanaColor: '#ef4444',
+      r: 20,
+      maxHp: 115,
+      speed: 196,
+      specialKind: 'fireball',
+      specialName: 'COFFEE HADOUKEN!',
+      specialColor: '#38bdf8',
+      taunts: ['MY TRAIN WAS DELAYED!', 'TORN GI, FULL FURY!', 'DON\'T TOUCH MY BRIEFCASE!']
+    },
+    {
+      id: 'brutus',
+      name: 'BRUTUS "POTHOLER"',
+      short: 'BRU',
+      giColor: '#4ade80',
+      trimColor: '#1d4ed8',
+      skinColor: '#86efac',
+      hairColor: '#14532d',
+      bandanaColor: '#f97316',
+      r: 24,
+      maxHp: 150,
+      speed: 170,
+      specialKind: 'shockwave',
+      specialName: 'ASPHALT SLAM!',
+      specialColor: '#84cc16',
+      taunts: ['BRUTUS SMASH SIDEWALK!', 'GET OUTTA MY ALLEY!', 'GRAAAH!!']
+    },
+    {
+      id: 'chun',
+      name: 'CHUN-LIQUID',
+      short: 'CHU',
+      giColor: '#3b82f6',
+      trimColor: '#fde047',
+      skinColor: '#fde2c4',
+      hairColor: '#1c1917',
+      bandanaColor: '#ffffff',
+      r: 18,
+      maxHp: 108,
+      speed: 230,
+      specialKind: 'cyclone',
+      specialName: 'LIGHTNING SPIN!',
+      specialColor: '#60a5fa',
+      taunts: ['TOO SLOW FOR UPTOWN!', 'WATCH THE KICKS!', 'JUST FINISHED PILATES!']
+    },
+    {
+      id: 'dorado',
+      name: 'EL DORADO',
+      short: 'ELD',
+      giColor: '#f59e0b',
+      trimColor: '#b91c1c',
+      skinColor: '#eab308',
+      hairColor: '#dc2626',
+      bandanaColor: '#ef4444',
+      r: 21,
+      maxHp: 125,
+      speed: 200,
+      specialKind: 'lariat',
+      specialName: 'QUARTERLY LARIAT!',
+      specialColor: '#fbbf24',
+      taunts: ['GOING DOWN?!', 'MY CAPE CAUGHT IN THE DOOR!', 'SYNERGY SUPLEX!!']
+    },
+    {
+      id: 'kenji',
+      name: 'KENJI "JAYWALKER"',
+      short: 'KEN',
+      giColor: '#ef4444',
+      trimColor: '#111111',
+      skinColor: '#f3caa0',
+      hairColor: '#fde047',
+      bandanaColor: '#111111',
+      r: 20,
+      maxHp: 120,
+      speed: 212,
+      specialKind: 'triple_flame',
+      specialName: 'FLAME CROSSWALK!',
+      specialColor: '#fb923c',
+      taunts: ['I NEVER WAIT FOR GREEN!', 'YOU LOOKIN\' AT ME?!', 'FEEL THE HEAT!']
+    },
+    {
+      id: 'bison',
+      name: 'MADAME BISON-NETTE',
+      short: 'BIS',
+      giColor: '#9333ea',
+      trimColor: '#facc15',
+      skinColor: '#f5d0b5',
+      hairColor: '#3b0764',
+      bandanaColor: '#dc2626',
+      r: 21,
+      maxHp: 138,
+      speed: 208,
+      specialKind: 'psycho_beam',
+      specialName: 'PSYCHO COMMUTE!',
+      specialColor: '#c084fc',
+      taunts: ['FOR ME, IT WAS TUESDAY!', 'BOW TO THE BOSS!', 'BOWL \'EM OVER!']
+    }
+  ];
+
   SG.I18N = {
     en: {
-      subtitle: '"ULTRA-REALISTIC STREET FIGHTER" EDITION',
-      pitch: 'No instant arena spawns! Fighters start their day scattered across <b>Downtown &amp; Uptown</b> — in subways, library alleys, street corners, and office elevators. Track down your rival fast: as time passes, your <b>GRUDGE METER</b> drains. Take too long and you\'ll literally <b>forget why you were mad</b> and cancel the fight!',
-      card1Title: '1. ROAM & TRACK',
-      card1Body: 'Explore Downtown & Uptown, ride the Subway shortcut, and yell to ping nearby rivals.',
-      card2Title: '2. STAY ANGRY',
-      card2Body: 'High Grudge = <b>+35% damage</b> & <b>Special Moves</b>. Smash trash cans for Espresso boosts!',
-      card3Title: '3. DON\'T CALM DOWN',
-      card3Body: 'If Grudge hits <b>0%</b>, your fighter shrugs and cancels the fight in an anticlimactic draw!',
-      mode1p: '1P OPEN WORLD (vs 6 AI)',
+      subtitle: 'v3 DIRECTOR\'S CUT — ULTRA-REALISTIC OPEN-WORLD FIGHTER',
+      pitch: 'Pick your fighter and start your day scattered across <b>Downtown &amp; Uptown</b>. Track down rivals, execute <b>Perfect Parries</b>, hurl <b>street weapons</b>, dodge the <b>Segway Mall Cop</b>, and unleash <b>ULTRA SUPER</b> moves before your <b>GRUDGE METER</b> hits 0% and you forget why you were mad!',
+      card1Title: '1. ROAM & CAFFEINE',
+      card1Body: 'Ride Subway Express, grab Espresso at kiosks (+Grudge & Speed), and press <b>[E]</b> to locate rivals.',
+      card2Title: '2. PARRY & WEAPONS',
+      card2Body: 'Time <b>Block [L]</b> right before a hit for a <b>PARRY!</b> Pick up trash lids, briefcases & cones to throw <b>[C]</b>.',
+      card3Title: '3. SUPER & GRUDGE',
+      card3Body: 'Build <b>SUPER 100%</b> for an Ultra Finisher <b>[U]</b>. If Grudge hits <b>0%</b>, the fight is canceled!',
+      mode1p: '1P OPEN WORLD (6 AI)',
       mode2p: '2P LOCAL SPLIT-SCREEN',
+      pickFighter: 'SELECT YOUR FIGHTER:',
       startBtn: 'START THE DAY!',
       playAgainBtn: 'START A NEW PETTY GRUDGE [R]',
-      p1Name: 'P1 (PETTY FIGHTER)',
+      p1Name: 'P1',
       p2Name: 'P2 (RIVAL COMMUTER)',
       grudge: 'GRUDGE',
+      superLabel: 'SUPER',
       noRival: 'NO RIVAL IN SIGHT',
       searchingCity: 'ROAMING CITY',
       roamHint: 'ROAM STREETS OR PRESS [E]',
@@ -71,6 +262,9 @@ window.StreetGrudge = window.StreetGrudge || {};
       koSub: 'PETTY BEEF SETTLED! +GRUDGE',
       subwayBanner: 'SUBWAY EXPRESS',
       subwaySub: 'COMMUTER RAGE! +5% GRUDGE',
+      copBanner: 'MALL COP ALERT!',
+      copSub: 'SEGWAY SECURITY IS CHASING YOU!',
+      superBanner: 'ULTRA PETTY FINISH!!',
       reasons: [
         'Took the last iced oat-milk latte',
         'Stepped on fresh sneakers back in 2019',
@@ -98,24 +292,31 @@ window.StreetGrudge = window.StreetGrudge || {};
         'Deep breaths... inner peace...',
         'That was 10 minutes ago, let it go.',
         'Wanna grab ramen instead?'
+      ],
+      distractionLines: [
+        'Ooh, 40% off sneakers...',
+        'Wait, that latte smells good...',
+        'Is that Street Fighter II inside?!'
       ]
     },
     tr: {
-      subtitle: '"ULTRA-GERÇEKÇİ STREET FIGHTER" SÜRÜMÜ',
-      pitch: 'Anında arena yok! Dövüşçüler güne <b>Downtown &amp; Uptown</b>\'da rastgele yerlerde başlıyor — metrolar, kütüphane arka sokakları, ofis asansörleri! Rakibi çabuk bul: zaman geçtikçe <b>ÖFKE / KİN BARIN</b> erir. Çok geç kalırsan <b>neden sinirlendiğini unutur</b> ve dövüşü iptal edersin!',
-      card1Title: '1. ŞEHRİ GEZ & BUL',
-      card1Body: 'Downtown ve Uptown\'ı dolaş, Metro kestirmesini kullan ve bağırarak rakiplerin yerini bul.',
-      card2Title: '2. ÖFKELİ KAL',
-      card2Body: 'Yüksek Öfke = <b>+%35 hasar</b> ve <b>Özel Hareket</b>. Çöp kutularından Espresso topla!',
-      card3Title: '3. SAKİNLEŞME!',
-      card3Body: 'Öfke <b>%0</b> olursa karakter omuz silker ve dövüş iptal olur (Berabere)!',
-      mode1p: '1P AÇIK DÜNYA (6 AI RAKİP)',
+      subtitle: 'v3 YÖNETMEN SÜRÜMÜ — ULTRA-GERÇEKÇİ AÇIK DÜNYA DÖVÜŞÜ',
+      pitch: 'Dövüşçünü seç ve <b>Downtown &amp; Uptown</b> sokaklarında güne başla! Rakipleri bul, <b>Kusursuz Parry</b> yap, <b>sokak silahları fırlat</b>, <b>Segway\'li Güvenlik Şefi\'nden</b> kaç ve <b>ÖFKE BARIN %0</b> olup neden kızdığını unutmadan <b>ULTRA SÜPER</b> hareketini patlat!',
+      card1Title: '1. GEZ & KAFEİN AL',
+      card1Body: 'Metro Ekspresine bin, kahve büfesinde Espresso kap (+Öfke & Hız) ve <b>[E]</b> ile rakipleri bul.',
+      card2Title: '2. PARRY & SİLAHLAR',
+      card2Body: 'Tam darbe anında <b>Blok [L]</b> ile <b>PARRY</b> yap! Çöp kapağı, evrak çantası ve duba fırlat <b>[C]</b>.',
+      card3Title: '3. SÜPER & ÖFKE BARI',
+      card3Body: '<b>SÜPER %100</b> dolunca <b>[U]</b> ile Ultra Finisher patlat. Öfke <b>%0</b> olursa dövüş iptal!',
+      mode1p: '1P AÇIK DÜNYA (6 AI)',
       mode2p: '2P YEREL BÖLÜNMÜŞ EKRAN',
+      pickFighter: 'DÖVÜŞÇÜNÜ SEÇ:',
       startBtn: 'GÜNE BAŞLA!',
       playAgainBtn: 'YENİ KİN BAŞLAT [R]',
-      p1Name: 'O1 (KİNCİ DÖVÜŞÇÜ)',
+      p1Name: 'O1',
       p2Name: 'O2 (RAKİP YOLCU)',
       grudge: 'ÖFKE',
+      superLabel: 'SÜPER',
       noRival: 'YAKINDA RAKİP YOK',
       searchingCity: 'ŞEHİRDE ARANIYOR',
       roamHint: 'SOKAKLARI GEZ VEYA [E] BAS',
@@ -151,6 +352,9 @@ window.StreetGrudge = window.StreetGrudge || {};
       koSub: 'HESAP GÖRÜLDÜ! +ÖFKE',
       subwayBanner: 'METRO EKSPRES',
       subwaySub: 'YOLCU ÖFKESİ! +%5 ÖFKE',
+      copBanner: 'GÜVENLİK ŞEFİ GELDİ!',
+      copSub: 'SEGWAY\'Lİ GÜVENLİK PEŞİNDE!',
+      superBanner: 'ULTRA KİN BİTİRİŞİ!!',
       reasons: [
         'Son buzlu latte\'yi gözünün önünde aldı',
         '2019\'da yeni ayakkabına bastı',
@@ -178,110 +382,15 @@ window.StreetGrudge = window.StreetGrudge || {};
         'Derin nefes... iç huzur...',
         '10 dakika oldu, boş ver gitsin.',
         'Gel şurada ramen yiyelim?'
+      ],
+      distractionLines: [
+        'Ooo ayakkabıda %40 indirim...',
+        'Şu latte çok güzel koktu ya...',
+        'İçerideki atari salonu açık mı?!'
       ]
     }
   };
 
   SG.currentLang = 'tr';
   SG.t = (key) => SG.I18N[SG.currentLang][key];
-
-  // 6 Distinct Rival Fighters with Unique Special Move Archetypes
-  SG.RIVAL_ROSTER = [
-    {
-      id: 'ryo',
-      name: 'RYO "COMMUTER"',
-      giColor: '#facc15',
-      trimColor: '#111111',
-      skinColor: '#f5cfa0',
-      hairColor: '#1e1b18',
-      bandanaColor: '#ef4444',
-      r: 20,
-      maxHp: 115,
-      speed: 195,
-      specialKind: 'fireball',
-      specialName: 'COFFEE HADOUKEN!',
-      specialColor: '#38bdf8',
-      taunts: ['MY TRAIN WAS DELAYED!', 'TORN GI, FULL FURY!', 'DON\'T TOUCH MY BRIEFCASE!']
-    },
-    {
-      id: 'brutus',
-      name: 'BRUTUS "POTHOLER"',
-      giColor: '#4ade80',
-      trimColor: '#1d4ed8',
-      skinColor: '#86efac',
-      hairColor: '#14532d',
-      bandanaColor: '#f97316',
-      r: 24,
-      maxHp: 150,
-      speed: 168,
-      specialKind: 'shockwave',
-      specialName: 'ASPHALT SLAM!',
-      specialColor: '#84cc16',
-      taunts: ['BRUTUS SMASH SIDEWALK!', 'GET OUTTA MY ALLEY!', 'GRAAAH!!']
-    },
-    {
-      id: 'chun',
-      name: 'CHUN-LIQUID',
-      giColor: '#3b82f6',
-      trimColor: '#fde047',
-      skinColor: '#fde2c4',
-      hairColor: '#1c1917',
-      bandanaColor: '#ffffff',
-      r: 18,
-      maxHp: 105,
-      speed: 228,
-      specialKind: 'cyclone',
-      specialName: 'LIGHTNING SPIN!',
-      specialColor: '#60a5fa',
-      taunts: ['TOO SLOW FOR UPTOWN!', 'WATCH THE KICKS!', 'JUST FINISHED PILATES!']
-    },
-    {
-      id: 'dorado',
-      name: 'EL DORADO',
-      giColor: '#f59e0b',
-      trimColor: '#b91c1c',
-      skinColor: '#eab308',
-      hairColor: '#dc2626',
-      bandanaColor: '#ef4444',
-      r: 21,
-      maxHp: 125,
-      speed: 198,
-      specialKind: 'lariat',
-      specialName: 'QUARTERLY LARIAT!',
-      specialColor: '#fbbf24',
-      taunts: ['GOING DOWN?!', 'MY CAPE CAUGHT IN THE DOOR!', 'SYNERGY SUPLEX!!']
-    },
-    {
-      id: 'kenji',
-      name: 'KENJI "JAYWALKER"',
-      giColor: '#ef4444',
-      trimColor: '#111111',
-      skinColor: '#f3caa0',
-      hairColor: '#fde047',
-      bandanaColor: '#111111',
-      r: 20,
-      maxHp: 120,
-      speed: 210,
-      specialKind: 'triple_flame',
-      specialName: 'FLAME CROSSWALK!',
-      specialColor: '#fb923c',
-      taunts: ['I NEVER WAIT FOR GREEN!', 'YOU LOOKIN\' AT ME?!', 'FEEL THE HEAT!']
-    },
-    {
-      id: 'bison',
-      name: 'MADAME BISON-NETTE',
-      giColor: '#9333ea',
-      trimColor: '#facc15',
-      skinColor: '#f5d0b5',
-      hairColor: '#3b0764',
-      bandanaColor: '#dc2626',
-      r: 21,
-      maxHp: 135,
-      speed: 205,
-      specialKind: 'psycho_beam',
-      specialName: 'PSYCHO COMMUTE!',
-      specialColor: '#c084fc',
-      taunts: ['FOR ME, IT WAS TUESDAY!', 'BOW TO THE BOSS!', 'BOWL \'EM OVER!']
-    }
-  ];
 })(window.StreetGrudge);

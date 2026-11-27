@@ -1,6 +1,5 @@
 /**
- * Street Grudge — Open-World City Generator, Collisions & Interactive Props
- * Zones: Downtown (West) & Uptown (East), Subways, Library Alley, Office Elevator
+ * Street Grudge v3 — Open-World City Generator, Interactive Kiosks, Pigeons & Props
  */
 window.StreetGrudge = window.StreetGrudge || {};
 
@@ -17,9 +16,12 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.props = [];
       this.subways = [];
       this.elevators = [];
+      this.kiosks = [];
+      this.distractions = [];
+      this.pigeons = [];
       this.spawnPoints = [];
       this.trees = [];
-      this.trafficPhase = 0; // 0: NS green, 1: NS yellow, 2: EW green, 3: EW yellow
+      this.trafficPhase = 0;
       this.trafficTimer = 0;
 
       this.buildLayout();
@@ -81,7 +83,6 @@ window.StreetGrudge = window.StreetGrudge || {};
       addBldg(2355, 1230, 290, 230, '#db2777', '#f472b6', 'SNEAKER BOUTIQUE', 'UPTOWN', 28);
       addBldg(2355, 1560, 290, 230, '#ca8a04', '#facc15', 'GOLD BANK', 'UPTOWN', 36);
 
-      // Linked Subway Express Entrances
       this.subways = [
         {
           id: 'sub_dt', x: 1245, y: 700, w: 135, h: 95,
@@ -97,6 +98,19 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       this.elevators = [
         { x: 1835, y: 580, w: 86, h: 24, openAmt: 0, label: 'APEX ELEVATOR' }
+      ];
+
+      // Interactive Street Food & Coffee Kiosks!
+      this.kiosks = [
+        { id: 'kiosk_coffee', x: 2020, y: 1505, r: 28, kind: 'espresso', label: 'ESPRESSO BAR', cooldown: 0 },
+        { id: 'kiosk_doner',  x: 1015, y: 1505, r: 28, kind: 'doner',    label: 'DÖNER / TACO', cooldown: 0 }
+      ];
+
+      // Satirical Window-Shopping Distractions
+      this.distractions = [
+        { x: 2330, y: 1345, r: 58, idx: 0, cd: 0 }, // Outside Sneaker Boutique
+        { x: 1650, y: 825,  r: 55, idx: 1, cd: 0 }, // Outside Latte Lab
+        { x: 790,  y: 805,  r: 55, idx: 2, cd: 0 }  // Outside Arcade 1991
       ];
 
       this.landmarks = [
@@ -140,6 +154,9 @@ window.StreetGrudge = window.StreetGrudge || {};
 
     resetProps() {
       this.props = [];
+      for (const k of this.kiosks) k.cooldown = 0;
+      for (const d of this.distractions) d.cd = 0;
+
       const hydrantSpots = [
         [330, 325], [795, 325], [1005, 325], [1415, 955], [795, 955],
         [330, 1195], [795, 1195], [1005, 1195], [1415, 1825], [1645, 955],
@@ -164,6 +181,16 @@ window.StreetGrudge = window.StreetGrudge || {};
         });
       }
 
+      const coneSpots = [
+        [815, 965], [990, 965], [1430, 1185], [1630, 1185], [2130, 965], [1530, 960]
+      ];
+      for (const [x, y] of coneSpots) {
+        this.props.push({
+          type: 'cone', x, y, r: 10, hp: 10, maxHp: 10,
+          broken: false, shake: 0
+        });
+      }
+
       const parkedCars = [
         { x: 1120, y: 1515, w: 66, h: 34, color: '#ef4444' },
         { x: 1280, y: 1515, w: 66, h: 34, color: '#3b82f6' },
@@ -178,6 +205,23 @@ window.StreetGrudge = window.StreetGrudge || {};
           r: 26, color: c.color, hp: 60, maxHp: 60,
           broken: false, alarmTimer: 0, shake: 0
         });
+      }
+
+      // City Pigeon Flocks pecking near plazas & library!
+      this.pigeons = [];
+      const flockCenters = [[1875, 1445], [560, 625], [1310, 860], [2480, 870]];
+      for (const [cx, cy] of flockCenters) {
+        for (let i = 0; i < 5; i++) {
+          this.pigeons.push({
+            x: cx + (Math.random() - 0.5) * 65,
+            y: cy + (Math.random() - 0.5) * 45,
+            homeX: cx, homeY: cy,
+            vx: 0, vy: 0, z: 0,
+            flying: false,
+            flap: Math.random() * 6,
+            angle: Math.random() * Math.PI * 2
+          });
+        }
       }
     }
 
@@ -247,7 +291,7 @@ window.StreetGrudge = window.StreetGrudge || {};
             ent.x += (dx / d) * (ent.r - d);
             ent.y += (dy / d) * (ent.r - d);
           }
-        } else if (!p.broken) {
+        } else if (!p.broken && p.type !== 'cone') {
           const dx = ent.x - p.x, dy = ent.y - p.y;
           const minR = ent.r + p.r;
           const d2 = dx * dx + dy * dy;
@@ -268,6 +312,13 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.trafficPhase = (this.trafficPhase + 1) % 4;
       }
 
+      for (const k of this.kiosks) {
+        if (k.cooldown > 0) k.cooldown = Math.max(0, k.cooldown - dt);
+      }
+      for (const d of this.distractions) {
+        if (d.cd > 0) d.cd = Math.max(0, d.cd - dt);
+      }
+
       for (const el of this.elevators) {
         let near = false;
         for (const f of fighters) {
@@ -276,6 +327,34 @@ window.StreetGrudge = window.StreetGrudge || {};
           }
         }
         el.openAmt += ((near ? 1 : 0) - el.openAmt) * Math.min(1, dt * 6);
+      }
+
+      // Pigeon flock scatter behavior
+      for (const pg of this.pigeons) {
+        pg.flap += dt * (pg.flying ? 26 : 4);
+        if (!pg.flying) {
+          for (const f of fighters) {
+            if (f && !f.ko && Math.hypot(f.x - pg.x, f.y - pg.y) < 75) {
+              pg.flying = true;
+              const a = Math.atan2(pg.y - f.y, pg.x - f.x) + (Math.random() - 0.5) * 0.9;
+              pg.angle = a;
+              pg.vx = Math.cos(a) * (200 + Math.random() * 100);
+              pg.vy = Math.sin(a) * (200 + Math.random() * 100);
+              break;
+            }
+          }
+        } else {
+          pg.x += pg.vx * dt;
+          pg.y += pg.vy * dt;
+          pg.z = Math.min(90, pg.z + 65 * dt);
+          if (pg.z >= 88 && Math.hypot(pg.x - pg.homeX, pg.y - pg.homeY) > 480) {
+            // Respawn peacefully back at plaza after flying out of view
+            pg.flying = false;
+            pg.z = 0;
+            pg.x = pg.homeX + (Math.random() - 0.5) * 60;
+            pg.y = pg.homeY + (Math.random() - 0.5) * 40;
+          }
+        }
       }
     }
   }

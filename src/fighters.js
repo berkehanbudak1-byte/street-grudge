@@ -1,5 +1,5 @@
 /**
- * Street Grudge — Fighter Entity & Character-Specific Special Attack Archetypes
+ * Street Grudge v3 — Fighter Entity with Perfect Parry, Super Meter, Street Weapons & Caffeine Rush
  */
 window.StreetGrudge = window.StreetGrudge || {};
 
@@ -10,8 +10,10 @@ window.StreetGrudge = window.StreetGrudge || {};
     constructor(cfg) {
       this.id = cfg.id;
       this.name = cfg.name;
+      this.short = cfg.short || cfg.name.slice(0, 3).toUpperCase();
       this.isPlayer = !!cfg.isPlayer;
-      this.playerNum = cfg.playerNum || 0; // 1 for P1, 2 for P2, 0 for AI
+      this.playerNum = cfg.playerNum || 0;
+      this.isCop = !!cfg.isCop;
       this.x = cfg.x;
       this.y = cfg.y;
       this.vx = 0;
@@ -21,6 +23,7 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.maxHp = cfg.maxHp || 120;
       this.hp = this.maxHp;
       this.speed = cfg.speed || 235;
+      this.powerMult = cfg.powerMult || 1.0;
       this.giColor = cfg.giColor || '#f8fafc';
       this.trimColor = cfg.trimColor || '#dc2626';
       this.skinColor = cfg.skinColor || '#f5cfa0';
@@ -31,13 +34,16 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.specialColor = cfg.specialColor || '#f97316';
       this.taunts = cfg.taunts || [];
 
-      // Signature Grudge / Calming Down Meter (0..100)
+      // Grudge (0..100) + Super Finisher Gauge (0..100)
       this.grudge = 100;
+      this.superMeter = 0;
+      this.caffeineTimer = 0;
+      this.weapon = null; // null | 'lid' | 'briefcase' | 'cone'
       this.ko = false;
       this.koTimer = 0;
 
       // Combat State
-      this.attackType = null; // 'punch' | 'kick' | 'special'
+      this.attackType = null;
       this.attackTimer = 0;
       this.attackDuration = 0;
       this.attackHitApplied = false;
@@ -49,8 +55,9 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.dashCooldown = 0;
       this.dashDirX = 0;
       this.dashDirY = 0;
-      this.spinAngle = 0;
       this.blocking = false;
+      this.wasBlocking = false;
+      this.parryWindow = 0; // Fresh block tap = 0.22s Perfect Parry window!
       this.hitstun = 0;
       this.flashTimer = 0;
       this.invulnTimer = 0;
@@ -63,7 +70,7 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.speechTimer = 0;
       this.shoutCooldown = 0;
 
-      // AI Finite State Machine (for Rival AI)
+      // AI FSM
       this.aiState = SG.AI_STATES.WANDER;
       this.aiTimer = 0;
       this.homeX = cfg.x;
@@ -84,9 +91,22 @@ window.StreetGrudge = window.StreetGrudge || {};
     }
 
     getDamageMultiplier() {
-      if (this.grudge >= 70) return 1.35;
-      if (this.grudge >= 35) return 1.0;
-      return 0.75;
+      let m = this.powerMult;
+      if (this.grudge >= 70) m *= 1.35;
+      else if (this.grudge < 35) m *= 0.75;
+      return m;
+    }
+
+    getMoveSpeed() {
+      return this.caffeineTimer > 0 ? this.speed * 1.28 : this.speed;
+    }
+
+    throwWeapon(game) {
+      if (!this.weapon || this.ko || this.hitstun > 0) return false;
+      const w = this.weapon;
+      this.weapon = null;
+      game.launchThrownWeapon(this, w);
+      return true;
     }
 
     startAttack(type, game) {
@@ -95,6 +115,19 @@ window.StreetGrudge = window.StreetGrudge || {};
       }
 
       if (type === 'special') {
+        // ULTRA SUPER FINISHER when Super Meter is 100%!
+        if (this.isPlayer && this.superMeter >= 100) {
+          this.superMeter = 0;
+          this.attackType = 'special';
+          this.attackDuration = 0.55;
+          this.attackTimer = 0.55;
+          this.attackCooldown = 0.25;
+          this.specialCooldown = 1.6;
+          this.invulnTimer = 0.5;
+          this.say(SG.t('superBanner'), 1.8);
+          game.executeUltraSuper(this);
+          return true;
+        }
         if (this.specialCooldown > 0) return false;
         if (this.isPlayer && this.grudge < 40) {
           this.say(SG.currentLang === 'tr' ? 'Öfkem yetmiyor! (>%40)' : 'Not mad enough! (>40%)', 1.6);
@@ -104,7 +137,7 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.attackDuration = 0.44;
         this.attackTimer = 0.44;
         this.attackCooldown = 0.24;
-        this.specialCooldown = this.isPlayer ? 2.6 : 4.6;
+        this.specialCooldown = this.isPlayer ? 2.5 : 4.6;
         this.attackHitApplied = false;
         this.say(this.specialName, 1.35);
         game.executeCharacterSpecial(this);
@@ -115,9 +148,9 @@ window.StreetGrudge = window.StreetGrudge || {};
         this.comboStep = (this.comboResetTimer > 0) ? ((this.comboStep + 1) % 3) : 0;
         this.comboResetTimer = 0.65;
         this.attackType = 'punch';
-        this.attackDuration = 0.19;
-        this.attackTimer = 0.19;
-        this.attackCooldown = 0.08;
+        this.attackDuration = 0.18;
+        this.attackTimer = 0.18;
+        this.attackCooldown = 0.07;
         this.attackHitApplied = false;
         game.sfx.punchSwing();
         return true;
@@ -125,9 +158,9 @@ window.StreetGrudge = window.StreetGrudge || {};
 
       if (type === 'kick') {
         this.attackType = 'kick';
-        this.attackDuration = 0.28;
-        this.attackTimer = 0.28;
-        this.attackCooldown = 0.16;
+        this.attackDuration = 0.27;
+        this.attackTimer = 0.27;
+        this.attackCooldown = 0.15;
         this.attackHitApplied = false;
         game.sfx.punchSwing();
         return true;
@@ -142,8 +175,8 @@ window.StreetGrudge = window.StreetGrudge || {};
       this.dashDirX = len > 0.01 ? dirX / len : Math.cos(this.angle);
       this.dashDirY = len > 0.01 ? dirY / len : Math.sin(this.angle);
       this.dashTimer = 0.16;
-      this.dashCooldown = 0.62;
-      this.invulnTimer = 0.18;
+      this.dashCooldown = 0.60;
+      this.invulnTimer = 0.19;
       game.sfx.dash();
       return true;
     }

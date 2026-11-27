@@ -1,0 +1,4148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>STREET GRUDGE — Ultra-Realistic Top-Down Arcade Fighter</title>
+  <style>
+/* =========================================================================
+   STREET GRUDGE — 100% Offline Cel-Shaded Comic-Book & Retro Arcade Styles
+   ========================================================================= */
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #141418;
+  color: #ffffff;
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+.hidden { display: none !important; }
+
+.font-arcade {
+  font-family: 'Impact', 'Arial Black', 'Haettenschweiler', sans-serif;
+  letter-spacing: 0.04em;
+}
+.font-pixel {
+  font-family: 'Courier New', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+}
+
+.comic-border {
+  border: 3px solid #111111;
+  box-shadow: 4px 4px 0px #111111;
+}
+.comic-border-sm {
+  border: 2.5px solid #111111;
+  box-shadow: 2.5px 2.5px 0px #111111;
+}
+
+.text-outline {
+  text-shadow: -2px -2px 0 #111, 2px -2px 0 #111, -2px 2px 0 #111, 2px 2px 0 #111, 0px 3px 0 #111;
+}
+.text-outline-sm {
+  text-shadow: -1.5px -1.5px 0 #111, 1.5px -1.5px 0 #111, -1.5px 1.5px 0 #111, 1.5px 1.5px 0 #111;
+}
+
+canvas#gameCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+}
+
+.halftone-bg {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.14) 1.5px, transparent 1.5px);
+  background-size: 9px 9px;
+}
+
+/* HUD LAYOUT */
+#hud {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.hud-top-wrap {
+  width: 100%;
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.hud-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fighter-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 3px;
+  padding: 0 3px;
+}
+
+.panel-name-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fighter-name {
+  font-size: 16px;
+  color: #ffe135;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fighter-name.rival { color: #fb7185; }
+
+.status-pill {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: #ef4444;
+  color: #ffffff;
+  border: 2px solid #111;
+  border-radius: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.status-pill.muted { background: #334155; color: #e2e8f0; }
+
+.score-text {
+  font-size: 13px;
+  color: #ffe135;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bar-track {
+  position: relative;
+  height: 24px;
+  background: #991b1b;
+  overflow: hidden;
+}
+.bar-track.rival-bg { background: #3f1d2e; }
+
+.bar-trail {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: #fb923c;
+  transition: width 0.3s ease;
+}
+.bar-fill-hp {
+  position: absolute;
+  top: 0; bottom: 0;
+  background: linear-gradient(180deg, #fef08a 0%, #facc15 55%, #eab308 100%);
+}
+.bar-align-right { right: 0; }
+.bar-align-left { left: 0; }
+
+.bar-overlay-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.bar-overlay-text.dark { color: #111; }
+.bar-overlay-text.light { color: #fff; }
+
+.ko-chip {
+  background: #111;
+  color: #ffe135;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.grudge-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.grudge-label {
+  font-size: 12px;
+  color: #ff6b35;
+  white-space: nowrap;
+}
+.grudge-track {
+  position: relative;
+  flex: 1;
+  height: 17px;
+  background: #1f2937;
+  overflow: hidden;
+}
+.grudge-fill {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  background-color: #ef4444;
+  transition: background-color 0.2s;
+}
+.grudge-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255,255,255,0.18) 0px,
+    rgba(255,255,255,0.18) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  animation: stripeMove 0.7s linear infinite;
+}
+@keyframes stripeMove {
+  from { background-position: 0 0; }
+  to   { background-position: 22.6px 0; }
+}
+
+.grudge-overlay-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 7px;
+  font-size: 10px;
+  color: #fff;
+}
+.grudge-overlay-text.center { justify-content: center; }
+
+/* CENTER KO BADGE */
+.center-badge-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.ko-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffe135 0%, #f97316 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-2deg);
+}
+.ko-badge-title {
+  font-size: 24px;
+  color: #dc2626;
+  line-height: 1;
+}
+.ko-badge-clock {
+  font-size: 10px;
+  color: #111;
+  line-height: 1;
+  margin-top: 2px;
+}
+.zone-badge {
+  margin-top: 4px;
+  padding: 2px 7px;
+  background: #111;
+  color: #38bdf8;
+  border: 2px solid #38bdf8;
+  border-radius: 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* EVENT BANNER */
+.event-banner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: auto 0;
+  pointer-events: none;
+}
+.event-banner {
+  padding: 8px 24px;
+  background: #ffe135;
+  color: #dc2626;
+  border-radius: 6px;
+  font-size: 42px;
+  text-align: center;
+}
+.event-sub-banner {
+  margin-top: 6px;
+  padding: 4px 12px;
+  background: #111;
+  color: #fff;
+  border: 2px solid #ffe135;
+  border-radius: 5px;
+  font-size: 13px;
+  text-align: center;
+}
+
+@keyframes bannerSlam {
+  0%   { transform: scale(2.4) rotate(-6deg); opacity: 0; }
+  60%  { transform: scale(0.95) rotate(1.5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.banner-slam { animation: bannerSlam 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* BOTTOM BAR */
+.hud-bottom-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bottom-left {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.combo-box {
+  align-self: flex-start;
+  padding: 4px 12px;
+  background: #ef4444;
+  transform: rotate(-2deg);
+}
+.combo-num { font-size: 24px; color: #ffe135; line-height: 1; }
+.combo-sub { font-size: 10px; color: #fff; }
+
+.util-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.util-btn {
+  padding: 4px 9px;
+  color: #111;
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.util-btn.amber { background: #fef3c7; }
+.util-btn.sky   { background: #e0f2fe; }
+.util-btn.lilac { background: #f3e8ff; }
+.util-btn.rose  { background: #fee2e2; }
+.util-btn:hover { filter: brightness(0.95); }
+
+.controls-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 10px;
+  background: rgba(17, 17, 17, 0.9);
+  border: 2px solid #ffe135;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #f8fafc;
+}
+
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  background: #fffbeb;
+  color: #111;
+  border: 2px solid #111;
+  box-shadow: 0 2px 0 #111;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-weight: 900;
+  font-size: 10px;
+}
+
+/* MINIMAP */
+.minimap-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.sound-cue-pill {
+  padding: 3px 8px;
+  background: rgba(17, 17, 17, 0.92);
+  border: 2px solid #f97316;
+  border-radius: 5px;
+  font-size: 10px;
+  color: #fdba74;
+}
+.minimap-frame {
+  width: 196px;
+  height: 144px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.88);
+  position: relative;
+  overflow: hidden;
+}
+.minimap-frame canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.minimap-title {
+  position: absolute;
+  top: 4px; left: 6px;
+  font-size: 9px;
+  color: #ffe135;
+}
+.minimap-zones {
+  position: absolute;
+  bottom: 3px; right: 6px;
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+/* MODALS (START & END) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.84);
+}
+.modal-card {
+  width: 100%;
+  max-width: 680px;
+  background: #fef3c7;
+  color: #111;
+  border-radius: 12px;
+  padding: 22px 26px;
+  max-height: 94vh;
+  overflow-y: auto;
+}
+.modal-card.compact {
+  max-width: 520px;
+  text-align: center;
+}
+
+.modal-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ribbon-tag {
+  padding: 3px 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  border-radius: 4px;
+}
+.lang-toggle-btn {
+  padding: 3px 10px;
+  background: #38bdf8;
+  color: #111;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.title-logo {
+  margin: 0;
+  font-size: 52px;
+  color: #f97316;
+  line-height: 1;
+}
+.title-sub {
+  margin: 4px 0 0;
+  font-size: 18px;
+  color: #dc2626;
+}
+.pitch-box {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.info-card {
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #1e293b;
+}
+.info-card h3 { margin: 0 0 4px; font-size: 14px; }
+.info-card p  { margin: 0; line-height: 1.35; }
+.info-card.c1 { background: #fef08a; }
+.info-card.c1 h3 { color: #b91c1c; }
+.info-card.c2 { background: #fed7aa; }
+.info-card.c2 h3 { color: #c2410c; }
+.info-card.c3 { background: #bae6fd; }
+.info-card.c3 h3 { color: #0369a1; }
+
+.mode-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.mode-btn {
+  padding: 10px;
+  background: #e2e8f0;
+  color: #1e293b;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.mode-btn.mode-active {
+  background: #ffe135;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.start-controls-box {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 12px;
+  font-size: 11px;
+}
+
+.cta-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.primary-cta {
+  padding: 12px 30px;
+  background: #ef4444;
+  color: #ffe135;
+  font-size: 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.primary-cta:hover { background: #dc2626; }
+.secondary-cta {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px;
+  background: #e2e8f0;
+  color: #111;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.stat-box {
+  padding: 8px 4px;
+  border-radius: 6px;
+}
+.stat-box .lbl { font-size: 10px; color: #475569; }
+.stat-box .val { font-size: 16px; font-weight: 900; margin-top: 2px; }
+.stat-box.s1 { background: #fef08a; }
+.stat-box.s2 { background: #fecaca; color: #dc2626; }
+.stat-box.s3 { background: #bae6fd; color: #0369a1; }
+.stat-box.s4 { background: #bbf7d0; color: #15803d; }
+
+/* TOUCH CONTROLS (Mobile / Narrow) */
+#touchControls {
+  display: none;
+  pointer-events: auto;
+  position: fixed;
+  bottom: 12px; left: 12px; right: 12px;
+  z-index: 20;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.touch-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  gap: 4px;
+}
+.touch-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  gap: 6px;
+}
+.touch-btn {
+  height: 42px;
+  border-radius: 6px;
+  background: rgba(17, 17, 17, 0.82);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .cards-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .controls-strip { display: none; }
+  .minimap-frame { width: 142px; height: 104px; }
+  .title-logo { font-size: 38px; }
+  .cta-row { flex-direction: column; }
+  .primary-cta { width: 100%; }
+  #touchControls.active { display: flex; }
+}
+
+</style>
+</head>
+<body>
+
+  <!-- MAIN GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- =========================================================================
+       RETRO ARCADE HUD OVERLAY
+       ========================================================================= -->
+  <div id="hud" class="hidden">
+
+    <!-- TOP ARCADE BAR -->
+    <div class="hud-top-wrap">
+      <div class="hud-top-row">
+
+        <!-- PLAYER 1 PANEL -->
+        <div class="fighter-panel">
+          <div class="panel-header">
+            <div class="panel-name-group">
+              <span id="p1Name" class="font-arcade fighter-name text-outline-sm">O1 (KİNCİ DÖVÜŞÇÜ)</span>
+              <span id="p1StatusBadge" class="font-pixel status-pill">KUDURMUŞ</span>
+            </div>
+            <span id="scoreDisplay" class="font-pixel score-text text-outline-sm">SCORE 000000</span>
+          </div>
+          <div class="bar-track comic-border-sm">
+            <div id="p1HealthTrail" class="bar-trail bar-align-right" style="width: 100%;"></div>
+            <div id="p1HealthFill" class="bar-fill-hp bar-align-right" style="width: 100%;"></div>
+            <div class="bar-overlay-text dark font-pixel">
+              <span id="p1HpText">120/120</span>
+              <span id="koCountText" class="ko-chip">RIVALS KO: 0/6</span>
+            </div>
+          </div>
+          <div class="grudge-row">
+            <span id="grudgeLabel" class="font-arcade grudge-label text-outline-sm">ÖFKE</span>
+            <div class="grudge-track comic-border-sm">
+              <div id="grudgeFill" class="grudge-fill grudge-stripes" style="width: 100%;"></div>
+              <div class="grudge-overlay-text font-pixel text-outline-sm">
+                <span id="grudgeStateText">SAF ÖFKE (+%35 HASAR)</span>
+                <span id="grudgePctText">100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER KO & CLOCK BADGE -->
+        <div class="center-badge-col">
+          <div id="koBadge" class="ko-badge comic-border">
+            <span class="font-arcade ko-badge-title text-outline-sm">KO</span>
+            <span id="clockText" class="font-pixel ko-badge-clock">09:00</span>
+          </div>
+          <div id="zoneBadge" class="zone-badge font-pixel">DOWNTOWN</div>
+        </div>
+
+        <!-- RIVAL / PLAYER 2 PANEL -->
+        <div class="fighter-panel">
+          <div class="panel-header">
+            <span id="rivalStateTag" class="font-pixel status-pill muted">ŞEHİRDE ARANIYOR</span>
+            <span id="rivalName" class="font-arcade fighter-name rival text-outline-sm">YAKINDA RAKİP YOK</span>
+          </div>
+          <div class="bar-track rival-bg comic-border-sm">
+            <div id="rivalHealthTrail" class="bar-trail bar-align-left" style="width: 0%;"></div>
+            <div id="rivalHealthFill" class="bar-fill-hp bar-align-left" style="width: 0%;"></div>
+            <div class="bar-overlay-text light font-pixel text-outline-sm">
+              <span id="rivalHpText">--</span>
+              <span id="rivalZoneHint" style="color:#fde047; font-size:10px;">SOKAKLARI GEZ VEYA [E] BAS</span>
+            </div>
+          </div>
+          <div class="grudge-row">
+            <div class="grudge-track comic-border-sm">
+              <div id="rivalGrudgeFill" class="grudge-fill" style="width: 0%; background:#f97316;"></div>
+              <div class="grudge-overlay-text center font-pixel text-outline-sm">
+                <span id="grudgeReasonHud">KİN: ...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CENTER DYNAMIC EVENT BANNER -->
+    <div class="event-banner-wrap">
+      <div id="eventBanner" class="hidden event-banner comic-border font-arcade text-outline">FIGHT!</div>
+      <div id="eventSubBanner" class="hidden event-sub-banner font-pixel"></div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="hud-bottom-row">
+      <div class="bottom-left">
+        <div id="comboBox" class="hidden combo-box comic-border-sm">
+          <div id="comboCountText" class="font-arcade combo-num text-outline-sm">3 HITS!</div>
+          <div class="font-pixel combo-sub">PETTY COMBO</div>
+        </div>
+
+        <div class="util-btn-row">
+          <button id="btnMute" class="util-btn amber comic-border-sm font-pixel">SFX: ON</button>
+          <button id="btnLang" class="util-btn sky comic-border-sm font-pixel">TR / EN</button>
+          <button id="btnDebugAi" class="util-btn lilac comic-border-sm font-pixel">AI FSM: OFF</button>
+          <button id="btnRestartHud" class="util-btn rose comic-border-sm font-pixel">YENİ GÜN [R]</button>
+        </div>
+
+        <div id="controlsStrip" class="controls-strip font-pixel"></div>
+      </div>
+
+      <div class="minimap-col">
+        <div id="soundCuePill" class="hidden sound-cue-pill font-pixel"></div>
+        <div class="minimap-frame comic-border">
+          <canvas id="minimapCanvas" width="196" height="144"></canvas>
+          <div class="minimap-title font-pixel text-outline-sm">CITY MAP</div>
+          <div class="minimap-zones font-pixel">DT | UT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE TOUCH CONTROLS -->
+  <div id="touchControls">
+    <div class="touch-dpad">
+      <div></div>
+      <button data-key="KeyW" class="touch-btn comic-border-sm font-arcade">▲</button>
+      <div></div>
+      <button data-key="KeyA" class="touch-btn comic-border-sm font-arcade">◀</button>
+      <button data-key="KeyS" class="touch-btn comic-border-sm font-arcade">▼</button>
+      <button data-key="KeyD" class="touch-btn comic-border-sm font-arcade">▶</button>
+    </div>
+    <div class="touch-actions">
+      <button data-key="KeyJ" class="touch-btn comic-border-sm font-arcade" style="background:#facc15;color:#111;">PUNCH</button>
+      <button data-key="KeyK" class="touch-btn comic-border-sm font-arcade" style="background:#fb923c;color:#111;">KICK</button>
+      <button data-key="KeyU" class="touch-btn comic-border-sm font-arcade" style="background:#ef4444;">SPEC</button>
+      <button data-key="Space" class="touch-btn comic-border-sm font-arcade" style="background:#38bdf8;color:#111;">DASH</button>
+      <button data-key="KeyL" class="touch-btn comic-border-sm font-arcade" style="background:#a855f7;">BLK</button>
+      <button data-key="KeyE" class="touch-btn comic-border-sm font-arcade" style="background:#4ade80;color:#111;">YELL</button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       TITLE / MODE SELECT MODAL
+       ========================================================================= -->
+  <div id="startModal" class="modal-backdrop">
+    <div class="modal-card comic-border halftone-bg">
+      <div class="modal-top-bar">
+        <span class="ribbon-tag comic-border-sm font-pixel">SATIRICAL OPEN-WORLD FIGHTER v2</span>
+        <button id="startLangBtn" class="lang-toggle-btn comic-border-sm font-pixel">DİL: TR / EN</button>
+      </div>
+
+      <h1 class="title-logo font-arcade text-outline">STREET GRUDGE</h1>
+      <p id="startSubtitle" class="title-sub font-arcade"></p>
+
+      <div id="startPitch" class="pitch-box comic-border-sm"></div>
+
+      <div class="cards-grid">
+        <div class="info-card c1 comic-border-sm">
+          <h3 id="card1Title" class="font-arcade"></h3>
+          <p id="card1Body"></p>
+        </div>
+        <div class="info-card c2 comic-border-sm">
+          <h3 id="card2Title" class="font-arcade"></h3>
+          <p id="card2Body"></p>
+        </div>
+        <div class="info-card c3 comic-border-sm">
+          <h3 id="card3Title" class="font-arcade"></h3>
+          <p id="card3Body"></p>
+        </div>
+      </div>
+
+      <!-- 1P vs 2P LOCAL SPLIT-SCREEN MODE SELECTOR -->
+      <div class="mode-row">
+        <button id="btnMode1P" class="mode-btn mode-active comic-border-sm font-arcade">1P OPEN WORLD (6 AI)</button>
+        <button id="btnMode2P" class="mode-btn comic-border-sm font-arcade">2P LOCAL SPLIT-SCREEN</button>
+      </div>
+
+      <div id="startControlsBox" class="start-controls-box comic-border-sm font-pixel"></div>
+
+      <div class="cta-row">
+        <span class="font-pixel" style="font-size:11px; color:#475569;">Downtown &amp; Uptown • Subway Express • 6 AI FSM</span>
+        <button id="btnStartGame" class="primary-cta comic-border font-arcade text-outline-sm">GÜNE BAŞLA!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       END-OF-DAY RESULT MODAL
+       ========================================================================= -->
+  <div id="endModal" class="hidden modal-backdrop">
+    <div class="modal-card compact comic-border halftone-bg">
+      <div id="endBadge" class="ribbon-tag comic-border-sm font-pixel" style="display:inline-block; margin-bottom:8px;">DRAW</div>
+      <h2 id="endTitle" class="font-arcade text-outline" style="margin:0; font-size:38px;">FORGOT WHY YOU WERE MAD!</h2>
+      <p id="endQuote" class="pitch-box comic-border-sm" style="font-style:italic;"></p>
+
+      <div class="stats-grid font-pixel">
+        <div class="stat-box s1 comic-border-sm"><div class="lbl">SCORE</div><div id="statScore" class="val">0</div></div>
+        <div class="stat-box s2 comic-border-sm"><div class="lbl">K.O.</div><div id="statKos" class="val">0/6</div></div>
+        <div class="stat-box s3 comic-border-sm"><div class="lbl">WALKED</div><div id="statDist" class="val">0m</div></div>
+        <div class="stat-box s4 comic-border-sm"><div class="lbl">PROPS</div><div id="statProps" class="val">0</div></div>
+      </div>
+
+      <div id="endForgottenReason" class="font-pixel" style="margin-top:10px; font-size:11px; color:#475569;"></div>
+
+      <button id="btnPlayAgain" class="primary-cta comic-border font-arcade text-outline-sm" style="width:100%; margin-top:14px;">YENİ KİN BAŞLAT [R]</button>
+      <button id="btnBackTitle" class="secondary-cta comic-border-sm font-pixel">ANA MENÜ / MOD SEÇ</button>
+    </div>
+  </div>
+
+  <script>
+/* === src/config.js === */
+/**
+ * Street Grudge — Configuration, Localization (EN/TR), and Character Roster
+ * Clean modular namespace (works directly via file:// without a local server).
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  SG.WORLD_W = 3000;
+  SG.WORLD_H = 2200;
+  SG.DOWNTOWN_SPLIT_X = 1520; // West = Downtown, East = Uptown
+
+  // Explicit Enemy AI Finite State Machine states
+  SG.AI_STATES = Object.freeze({
+    WANDER: 'DailyRoutine_Wander',
+    SEARCH: 'Searching',
+    COMBAT: 'Aggro_Combat',
+    CALMED: 'CalmedDown'
+  });
+
+  SG.I18N = {
+    en: {
+      subtitle: '"ULTRA-REALISTIC STREET FIGHTER" EDITION',
+      pitch: 'No instant arena spawns! Fighters start their day scattered across <b>Downtown &amp; Uptown</b> — in subways, library alleys, street corners, and office elevators. Track down your rival fast: as time passes, your <b>GRUDGE METER</b> drains. Take too long and you\'ll literally <b>forget why you were mad</b> and cancel the fight!',
+      card1Title: '1. ROAM & TRACK',
+      card1Body: 'Explore Downtown & Uptown, ride the Subway shortcut, and yell to ping nearby rivals.',
+      card2Title: '2. STAY ANGRY',
+      card2Body: 'High Grudge = <b>+35% damage</b> & <b>Special Moves</b>. Smash trash cans for Espresso boosts!',
+      card3Title: '3. DON\'T CALM DOWN',
+      card3Body: 'If Grudge hits <b>0%</b>, your fighter shrugs and cancels the fight in an anticlimactic draw!',
+      mode1p: '1P OPEN WORLD (vs 6 AI)',
+      mode2p: '2P LOCAL SPLIT-SCREEN',
+      startBtn: 'START THE DAY!',
+      playAgainBtn: 'START A NEW PETTY GRUDGE [R]',
+      p1Name: 'P1 (PETTY FIGHTER)',
+      p2Name: 'P2 (RIVAL COMMUTER)',
+      grudge: 'GRUDGE',
+      noRival: 'NO RIVAL IN SIGHT',
+      searchingCity: 'ROAMING CITY',
+      roamHint: 'ROAM STREETS OR PRESS [E]',
+      fuming: 'FUMING',
+      annoyed: 'ANNOYED',
+      cooling: 'COOLING OFF',
+      calm: 'CALMED DOWN',
+      grudgeHigh: 'PURE RAGE (+35% DMG, SPECIAL READY)',
+      grudgeMid: 'STILL MAD (SPECIAL > 40%)',
+      grudgeLow: 'FORGETTING WHY... (-25% DMG)',
+      grudgeZero: 'TOTALLY OVER IT',
+      forgotBadge: 'ANTICLIMACTIC DRAW — FIGHT CANCELED',
+      forgotTitle: 'FORGOT WHY YOU WERE MAD!',
+      forgotQuotes: [
+        '"Wait... why did I even put on my fighting headband today? Honestly, I could go for a sandwich."',
+        '"You know what? Walking 12 blocks really cleared my head. Great cardio."',
+        '"Was I mad at them, or just hungry? Probably just hungry. Let\'s call it a draw."'
+      ],
+      defeatBadge: 'KNOCKED OUT IN PUBLIC',
+      defeatTitle: 'DOWN FOR THE COUNT!',
+      defeatQuote: '"You got folded right next to a broken fire hydrant while three commuters filmed it."',
+      victoryBadge: 'UNDEFEATED MENACE',
+      victoryTitle: 'PETTY CHAMPION OF THE CITY!',
+      victoryQuote: '"Every rival in Downtown & Uptown has been settled. Your petty grudge is finally satisfied."',
+      p1WinTitle: 'PLAYER 1 WINS THE BEEF!',
+      p2WinTitle: 'PLAYER 2 WINS THE BEEF!',
+      vsWinQuote: '"Finally found each other across town and settled it right in the middle of traffic!"',
+      challengerBanner: 'RIVAL FOUND!',
+      fightSub: 'LOCKED IN STREET COMBAT!',
+      mergedBanner: 'BEEF LOCATED!',
+      mergedSub: 'SPLIT-SCREEN MERGED — FIGHT!!',
+      koBanner: 'K.O.!',
+      koSub: 'PETTY BEEF SETTLED! +GRUDGE',
+      subwayBanner: 'SUBWAY EXPRESS',
+      subwaySub: 'COMMUTER RAGE! +5% GRUDGE',
+      reasons: [
+        'Took the last iced oat-milk latte',
+        'Stepped on fresh sneakers back in 2019',
+        'Didn\'t hold the office elevator door',
+        'Spoiled the season finale on the subway',
+        'Left the group chat message on "Read"',
+        'Parked across TWO spaces outside the library',
+        'Chewed popcorn way too loudly at the movies'
+      ],
+      playerLowGrudgeLines: [
+        'Wait... why was I mad again?',
+        'Nice weather today, honestly...',
+        'Maybe I overreacted?',
+        'My legs hurt. Coffee sounds nice.',
+        'Was it really THAT big a deal?'
+      ],
+      playerShoutLines: [
+        'HEY!! GET OVER HERE!!',
+        'DON\'T WALK AWAY FROM ME!!',
+        'WE HAVE UNFINISHED BUSINESS!!',
+        'SQUARE UP RIGHT NOW!!'
+      ],
+      calmedRivalLines: [
+        'Bro, I\'m totally over it now.',
+        'Deep breaths... inner peace...',
+        'That was 10 minutes ago, let it go.',
+        'Wanna grab ramen instead?'
+      ]
+    },
+    tr: {
+      subtitle: '"ULTRA-GERÇEKÇİ STREET FIGHTER" SÜRÜMÜ',
+      pitch: 'Anında arena yok! Dövüşçüler güne <b>Downtown &amp; Uptown</b>\'da rastgele yerlerde başlıyor — metrolar, kütüphane arka sokakları, ofis asansörleri! Rakibi çabuk bul: zaman geçtikçe <b>ÖFKE / KİN BARIN</b> erir. Çok geç kalırsan <b>neden sinirlendiğini unutur</b> ve dövüşü iptal edersin!',
+      card1Title: '1. ŞEHRİ GEZ & BUL',
+      card1Body: 'Downtown ve Uptown\'ı dolaş, Metro kestirmesini kullan ve bağırarak rakiplerin yerini bul.',
+      card2Title: '2. ÖFKELİ KAL',
+      card2Body: 'Yüksek Öfke = <b>+%35 hasar</b> ve <b>Özel Hareket</b>. Çöp kutularından Espresso topla!',
+      card3Title: '3. SAKİNLEŞME!',
+      card3Body: 'Öfke <b>%0</b> olursa karakter omuz silker ve dövüş iptal olur (Berabere)!',
+      mode1p: '1P AÇIK DÜNYA (6 AI RAKİP)',
+      mode2p: '2P YEREL BÖLÜNMÜŞ EKRAN',
+      startBtn: 'GÜNE BAŞLA!',
+      playAgainBtn: 'YENİ KİN BAŞLAT [R]',
+      p1Name: 'O1 (KİNCİ DÖVÜŞÇÜ)',
+      p2Name: 'O2 (RAKİP YOLCU)',
+      grudge: 'ÖFKE',
+      noRival: 'YAKINDA RAKİP YOK',
+      searchingCity: 'ŞEHİRDE ARANIYOR',
+      roamHint: 'SOKAKLARI GEZ VEYA [E] BAS',
+      fuming: 'KUDURMUŞ',
+      annoyed: 'SİNİRLİ',
+      cooling: 'SAKİNLEŞİYOR',
+      calm: 'UNUTTU',
+      grudgeHigh: 'SAF ÖFKE (+%35 HASAR, ÖZEL HAZIR)',
+      grudgeMid: 'HALA KIZGIN (ÖZEL > %40)',
+      grudgeLow: 'NEDEN KIZMIŞTIM?.. (-%25 HASAR)',
+      grudgeZero: 'TAMAMEN UNUTTU',
+      forgotBadge: 'DÖVÜŞ İPTAL EDİLDİ — BERABERE',
+      forgotTitle: 'NEDEN SİNİRLENDİĞİNİ UNUTTUN!',
+      forgotQuotes: [
+        '"Bir dakika... ben bugün niye dövüş bandanasını taktım ki? Aslında canım tost çekti."',
+        '"Biliyor musun? 12 sokak yürüyünce kafam dağıldı, güzel kardiyo oldu."',
+        '"Ona mı kızmıştım yoksa sadece aç mıydım? Kesin açlıktan. İptal edelim."'
+      ],
+      defeatBadge: 'SOKAK ORTASINDA NAKAVT',
+      defeatTitle: 'YERDE KALDIN!',
+      defeatQuote: '"Patlak yangın musluğunun yanında üç yolcu video çekerken nakavt oldun."',
+      victoryBadge: 'ŞEHRİN EN KİNCİ ŞAMPİYONU',
+      victoryTitle: 'TÜM RAKİPLER NAKAVT!',
+      victoryQuote: '"Downtown ve Uptown\'daki tüm hesaplar görüldü. Saçma kinin sonunda tatmin oldu."',
+      p1WinTitle: '1. OYUNCU HESABI KESTİ!',
+      p2WinTitle: '2. OYUNCU HESABI KESTİ!',
+      vsWinQuote: '"Şehrin iki ucundan sonunda birbirinizi bulup trafiğin ortasında kapıştınız!"',
+      challengerBanner: 'RAKİP BULUNDU!',
+      fightSub: 'SOKAK DÖVÜŞÜ BAŞLADI!',
+      mergedBanner: 'KARŞILAŞTILAR!',
+      mergedSub: 'EKRAN BİRLEŞTİ — DÖVÜŞ!!',
+      koBanner: 'K.O.!',
+      koSub: 'HESAP GÖRÜLDÜ! +ÖFKE',
+      subwayBanner: 'METRO EKSPRES',
+      subwaySub: 'YOLCU ÖFKESİ! +%5 ÖFKE',
+      reasons: [
+        'Son buzlu latte\'yi gözünün önünde aldı',
+        '2019\'da yeni ayakkabına bastı',
+        'Ofis asansörünün kapısını tutmadı',
+        'Metroda dizinin finalini spoiler verdi',
+        'Mesajına görüldü atıp cevap vermedi',
+        'Kütüphane önünde İKİ park yerini kapladı',
+        'Sinemada yüksek sesle mısır yedi'
+      ],
+      playerLowGrudgeLines: [
+        'Dur ya... niye kızmıştım ben?',
+        'Hava da bugün çok güzelmiş...',
+        'Abarttım mı acaba?',
+        'Ayaklarım ağrıdı, kahve mi içsem?',
+        'O kadar da önemli değildi sanki...'
+      ],
+      playerShoutLines: [
+        'HEY!! BURAYA GEL!!',
+        'KAÇMA BENDEN!!',
+        'YARIM KALAN HESABIMIZ VAR!!',
+        'ÇIK KARŞIMA!!'
+      ],
+      calmedRivalLines: [
+        'Kardeşim benim sinirim geçti ya.',
+        'Derin nefes... iç huzur...',
+        '10 dakika oldu, boş ver gitsin.',
+        'Gel şurada ramen yiyelim?'
+      ]
+    }
+  };
+
+  SG.currentLang = 'tr';
+  SG.t = (key) => SG.I18N[SG.currentLang][key];
+
+  // 6 Distinct Rival Fighters with Unique Special Move Archetypes
+  SG.RIVAL_ROSTER = [
+    {
+      id: 'ryo',
+      name: 'RYO "COMMUTER"',
+      giColor: '#facc15',
+      trimColor: '#111111',
+      skinColor: '#f5cfa0',
+      hairColor: '#1e1b18',
+      bandanaColor: '#ef4444',
+      r: 20,
+      maxHp: 115,
+      speed: 195,
+      specialKind: 'fireball',
+      specialName: 'COFFEE HADOUKEN!',
+      specialColor: '#38bdf8',
+      taunts: ['MY TRAIN WAS DELAYED!', 'TORN GI, FULL FURY!', 'DON\'T TOUCH MY BRIEFCASE!']
+    },
+    {
+      id: 'brutus',
+      name: 'BRUTUS "POTHOLER"',
+      giColor: '#4ade80',
+      trimColor: '#1d4ed8',
+      skinColor: '#86efac',
+      hairColor: '#14532d',
+      bandanaColor: '#f97316',
+      r: 24,
+      maxHp: 150,
+      speed: 168,
+      specialKind: 'shockwave',
+      specialName: 'ASPHALT SLAM!',
+      specialColor: '#84cc16',
+      taunts: ['BRUTUS SMASH SIDEWALK!', 'GET OUTTA MY ALLEY!', 'GRAAAH!!']
+    },
+    {
+      id: 'chun',
+      name: 'CHUN-LIQUID',
+      giColor: '#3b82f6',
+      trimColor: '#fde047',
+      skinColor: '#fde2c4',
+      hairColor: '#1c1917',
+      bandanaColor: '#ffffff',
+      r: 18,
+      maxHp: 105,
+      speed: 228,
+      specialKind: 'cyclone',
+      specialName: 'LIGHTNING SPIN!',
+      specialColor: '#60a5fa',
+      taunts: ['TOO SLOW FOR UPTOWN!', 'WATCH THE KICKS!', 'JUST FINISHED PILATES!']
+    },
+    {
+      id: 'dorado',
+      name: 'EL DORADO',
+      giColor: '#f59e0b',
+      trimColor: '#b91c1c',
+      skinColor: '#eab308',
+      hairColor: '#dc2626',
+      bandanaColor: '#ef4444',
+      r: 21,
+      maxHp: 125,
+      speed: 198,
+      specialKind: 'lariat',
+      specialName: 'QUARTERLY LARIAT!',
+      specialColor: '#fbbf24',
+      taunts: ['GOING DOWN?!', 'MY CAPE CAUGHT IN THE DOOR!', 'SYNERGY SUPLEX!!']
+    },
+    {
+      id: 'kenji',
+      name: 'KENJI "JAYWALKER"',
+      giColor: '#ef4444',
+      trimColor: '#111111',
+      skinColor: '#f3caa0',
+      hairColor: '#fde047',
+      bandanaColor: '#111111',
+      r: 20,
+      maxHp: 120,
+      speed: 210,
+      specialKind: 'triple_flame',
+      specialName: 'FLAME CROSSWALK!',
+      specialColor: '#fb923c',
+      taunts: ['I NEVER WAIT FOR GREEN!', 'YOU LOOKIN\' AT ME?!', 'FEEL THE HEAT!']
+    },
+    {
+      id: 'bison',
+      name: 'MADAME BISON-NETTE',
+      giColor: '#9333ea',
+      trimColor: '#facc15',
+      skinColor: '#f5d0b5',
+      hairColor: '#3b0764',
+      bandanaColor: '#dc2626',
+      r: 21,
+      maxHp: 135,
+      speed: 205,
+      specialKind: 'psycho_beam',
+      specialName: 'PSYCHO COMMUTE!',
+      specialColor: '#c084fc',
+      taunts: ['FOR ME, IT WAS TUESDAY!', 'BOW TO THE BOSS!', 'BOWL \'EM OVER!']
+    }
+  ];
+})(window.StreetGrudge);
+
+
+/* === src/audio.js === */
+/**
+ * Street Grudge — Procedural Web Audio Engine
+ * Zero external audio assets required; synthesizes all arcade SFX and city ambience.
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+
+    unlock() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    }
+
+    tone(freq, endFreq, duration, type = 'square', volume = 0.12, delay = 0) {
+      if (this.muted || !this.ctx) return;
+      const now = this.ctx.currentTime + delay;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.01);
+    }
+
+    noise(duration, volume = 0.14, filterFreq = 900, delay = 0) {
+      if (this.muted || !this.ctx) return;
+      const now = this.ctx.currentTime + delay;
+      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(filterFreq, now);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      src.start(now);
+    }
+
+    punchSwing() { this.noise(0.07, 0.08, 1600); this.tone(260, 110, 0.07, 'triangle', 0.08); }
+    hitLight()   { this.noise(0.09, 0.16, 1100); this.tone(180, 55, 0.09, 'square', 0.14); }
+    hitHeavy()   { this.noise(0.14, 0.22, 650);  this.tone(140, 36, 0.16, 'sawtooth', 0.18); }
+    block()      { this.tone(680, 920, 0.07, 'square', 0.10); this.tone(320, 260, 0.06, 'triangle', 0.08); }
+    dash()       { this.noise(0.10, 0.09, 2200); this.tone(420, 180, 0.10, 'sine', 0.07); }
+    special()    {
+      this.tone(220, 880, 0.18, 'sawtooth', 0.15);
+      this.tone(440, 120, 0.28, 'square', 0.14, 0.10);
+      this.noise(0.22, 0.18, 950, 0.08);
+    }
+    shockwave()  {
+      this.tone(130, 32, 0.34, 'sawtooth', 0.20);
+      this.noise(0.28, 0.20, 420);
+    }
+    shout()      { this.tone(360, 540, 0.11, 'sawtooth', 0.10); this.tone(540, 310, 0.14, 'square', 0.09, 0.10); }
+    hydrant()    { this.tone(280, 90, 0.12, 'square', 0.14); this.noise(0.35, 0.15, 2400, 0.05); }
+    trashCan()   { this.tone(520, 240, 0.10, 'square', 0.12); this.noise(0.14, 0.12, 1400); }
+    carHorn()    { this.tone(392, 392, 0.18, 'sawtooth', 0.08); this.tone(493.8, 493.8, 0.18, 'sawtooth', 0.07); }
+    pickup()     { this.tone(523, 659, 0.09, 'triangle', 0.12); this.tone(659, 1046, 0.14, 'triangle', 0.12, 0.08); }
+    subway()     {
+      this.noise(0.42, 0.15, 380);
+      this.tone(200, 62, 0.38, 'sawtooth', 0.10);
+      this.tone(520, 660, 0.10, 'sine', 0.09, 0.32);
+    }
+    challenger() {
+      this.tone(330, 330, 0.10, 'square', 0.13, 0);
+      this.tone(440, 440, 0.10, 'square', 0.13, 0.10);
+      this.tone(659, 659, 0.22, 'sawtooth', 0.15, 0.20);
+    }
+    koFanfare() {
+      this.hitHeavy();
+      this.tone(523, 523, 0.12, 'square', 0.14, 0.08);
+      this.tone(659, 659, 0.12, 'square', 0.14, 0.18);
+      this.tone(784, 784, 0.16, 'square', 0.15, 0.28);
+      this.tone(1046, 980, 0.32, 'sawtooth', 0.15, 0.42);
+    }
+    forgotTrombone() {
+      this.tone(311, 293, 0.24, 'sawtooth', 0.12, 0.0);
+      this.tone(293, 277, 0.24, 'sawtooth', 0.12, 0.26);
+      this.tone(277, 261, 0.24, 'sawtooth', 0.12, 0.52);
+      this.tone(261, 238, 0.65, 'sawtooth', 0.13, 0.78);
+    }
+    distantSiren(intensity = 0.04) {
+      this.tone(620, 840, 0.32, 'sine', intensity, 0);
+      this.tone(840, 620, 0.32, 'sine', intensity, 0.32);
+    }
+  }
+
+  SG.SoundEngine = SoundEngine;
+})(window.StreetGrudge);
+
+
+/* === src/world.js === */
+/**
+ * Street Grudge — Open-World City Generator, Collisions & Interactive Props
+ * Zones: Downtown (West) & Uptown (East), Subways, Library Alley, Office Elevator
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  class CityWorld {
+    constructor() {
+      this.buildings = [];
+      this.hRoads = [];
+      this.vRoads = [];
+      this.intersections = [];
+      this.landmarks = [];
+      this.props = [];
+      this.subways = [];
+      this.elevators = [];
+      this.spawnPoints = [];
+      this.trees = [];
+      this.trafficPhase = 0; // 0: NS green, 1: NS yellow, 2: EW green, 3: EW yellow
+      this.trafficTimer = 0;
+
+      this.buildLayout();
+    }
+
+    buildLayout() {
+      this.hRoads = [
+        { y: 120, h: 170, name: 'NORTH BOULEVARD' },
+        { y: 980, h: 190, name: 'MAIN STREET' },
+        { y: 1850, h: 170, name: 'SOUTH AVENUE' }
+      ];
+      this.vRoads = [
+        { x: 140, w: 170, name: 'WEST 1ST' },
+        { x: 820, w: 160, name: 'LIBRARY AVE' },
+        { x: 1440, w: 180, name: 'DIVIDE BLVD' },
+        { x: 2140, w: 160, name: 'PLAZA WAY' },
+        { x: 2700, w: 160, name: 'UPTOWN EAST' }
+      ];
+
+      for (const hr of this.hRoads) {
+        for (const vr of this.vRoads) {
+          this.intersections.push({
+            x: vr.x, y: hr.y, w: vr.w, h: hr.h,
+            cx: vr.x + vr.w / 2, cy: hr.y + hr.h / 2
+          });
+        }
+      }
+
+      const addBldg = (x, y, w, h, color, roofColor, label, zone, heightPx = 26) => {
+        this.buildings.push({ x, y, w, h, color, roofColor, label, zone, heightPx });
+      };
+
+      // --- DOWNTOWN (West) ---
+      addBldg(360, 340, 410, 230, '#b45309', '#d97706', 'CENTRAL LIBRARY', 'DOWNTOWN', 30);
+      addBldg(360, 680, 185, 250, '#7c2d12', '#9a3412', 'PAWN & BOOKS', 'DOWNTOWN', 24);
+      addBldg(585, 680, 185, 250, '#475569', '#64748b', 'ARCADE 1991', 'DOWNTOWN', 28);
+
+      addBldg(1030, 340, 355, 220, '#be123c', '#e11d48', 'DRAGON RAMEN', 'DOWNTOWN', 25);
+      addBldg(1030, 610, 175, 320, '#334155', '#475569', 'GYM & DOJO', 'DOWNTOWN', 34);
+
+      addBldg(360, 1230, 200, 560, '#57534e', '#78716c', 'OLD WAREHOUSE', 'DOWNTOWN', 32);
+      addBldg(605, 1230, 165, 250, '#991b1b', '#dc2626', 'PIZZA KING', 'DOWNTOWN', 22);
+      addBldg(605, 1540, 165, 250, '#1e3a8a', '#2563eb', 'BAIL BONDS', 'DOWNTOWN', 24);
+
+      addBldg(1030, 1230, 355, 210, '#0f766e', '#14b8a6', '24H BODEGA', 'DOWNTOWN', 22);
+      addBldg(1030, 1570, 355, 220, '#6b21a8', '#9333ea', 'COMIC VAULT', 'DOWNTOWN', 26);
+
+      // --- UPTOWN (East) ---
+      addBldg(1670, 340, 415, 250, '#0284c7', '#38bdf8', 'APEX TOWER', 'UPTOWN', 44);
+      addBldg(1670, 725, 190, 205, '#0369a1', '#0ea5e9', 'LATTE LAB', 'UPTOWN', 24);
+      addBldg(1895, 725, 190, 205, '#0f766e', '#2dd4bf', 'ZEN SPA', 'UPTOWN', 26);
+
+      addBldg(2355, 340, 290, 280, '#4f46e5', '#818cf8', 'METRO GALLERY', 'UPTOWN', 36);
+
+      addBldg(1670, 1230, 170, 190, '#0891b2', '#22d3ee', 'TECH LOFT', 'UPTOWN', 32);
+      addBldg(1915, 1230, 170, 190, '#059669', '#34d399', 'SALAD BAR', 'UPTOWN', 22);
+      addBldg(1670, 1600, 415, 190, '#1d4ed8', '#60a5fa', 'GRAND HOTEL', 'UPTOWN', 42);
+
+      addBldg(2355, 1230, 290, 230, '#db2777', '#f472b6', 'SNEAKER BOUTIQUE', 'UPTOWN', 28);
+      addBldg(2355, 1560, 290, 230, '#ca8a04', '#facc15', 'GOLD BANK', 'UPTOWN', 36);
+
+      // Linked Subway Express Entrances
+      this.subways = [
+        {
+          id: 'sub_dt', x: 1245, y: 700, w: 135, h: 95,
+          targetId: 'sub_ut', exitX: 2500, exitY: 850,
+          name: 'DOWNTOWN SUBWAY', zone: 'DOWNTOWN'
+        },
+        {
+          id: 'sub_ut', x: 2430, y: 690, w: 135, h: 95,
+          targetId: 'sub_dt', exitX: 1310, exitY: 855,
+          name: 'UPTOWN SUBWAY', zone: 'UPTOWN'
+        }
+      ];
+
+      this.elevators = [
+        { x: 1835, y: 580, w: 86, h: 24, openAmt: 0, label: 'APEX ELEVATOR' }
+      ];
+
+      this.landmarks = [
+        { x: 565, y: 625, name: 'LIBRARY ALLEY', zone: 'DOWNTOWN', color: '#f59e0b' },
+        { x: 1310, y: 745, name: 'DT SUBWAY', zone: 'DOWNTOWN', color: '#38bdf8' },
+        { x: 1878, y: 645, name: 'ELEVATOR LOBBY', zone: 'UPTOWN', color: '#a855f7' },
+        { x: 2500, y: 740, name: 'UT SUBWAY', zone: 'UPTOWN', color: '#38bdf8' },
+        { x: 1875, y: 1500, name: 'UPTOWN PLAZA', zone: 'UPTOWN', color: '#22c55e' },
+        { x: 1205, y: 1505, name: 'PARKING LOT', zone: 'DOWNTOWN', color: '#94a3b8' },
+        { x: 1530, y: 1075, name: 'MAIN & DIVIDE', zone: 'DOWNTOWN', color: '#f43f5e' }
+      ];
+
+      this.spawnPoints = [
+        { x: 540,  y: 625,  label: 'Alley Behind Central Library', zone: 'DOWNTOWN' },
+        { x: 1315, y: 840,  label: 'Downtown Subway Platform',     zone: 'DOWNTOWN' },
+        { x: 1875, y: 655,  label: 'Apex Office Elevator Lobby',   zone: 'UPTOWN' },
+        { x: 2500, y: 835,  label: 'Uptown Subway Concourse',      zone: 'UPTOWN' },
+        { x: 1790, y: 1505, label: 'Uptown Marble Plaza',          zone: 'UPTOWN' },
+        { x: 900,  y: 1075, label: 'Busy Downtown Intersection',   zone: 'DOWNTOWN' },
+        { x: 1210, y: 1500, label: 'Downtown Bodega Parking Lot',  zone: 'DOWNTOWN' },
+        { x: 2220, y: 1480, label: 'Uptown Boutique Corner',       zone: 'UPTOWN' },
+        { x: 690,  y: 1510, label: 'Pizza King Side Alley',        zone: 'DOWNTOWN' },
+        { x: 2220, y: 520,  label: 'Metro Gallery Sidewalk',       zone: 'UPTOWN' },
+        { x: 245,  y: 1075, label: 'West 1st Crosswalk',           zone: 'DOWNTOWN' },
+        { x: 2500, y: 1510, label: 'Gold Bank Alleyway',           zone: 'UPTOWN' }
+      ];
+
+      this.fountain = { x: 1875, y: 1505, r: 44 };
+      const treeCoords = [
+        [1650, 1450], [1650, 1555], [2095, 1450], [2095, 1555],
+        [2340, 910], [2640, 910], [1655, 915], [2095, 915],
+        [2340, 1190], [2655, 1190], [1655, 1190], [2095, 1190],
+        [345, 940], [785, 940], [1015, 940]
+      ];
+      for (const [tx, ty] of treeCoords) {
+        this.trees.push({ x: tx, y: ty, r: 22 });
+      }
+
+      this.resetProps();
+    }
+
+    resetProps() {
+      this.props = [];
+      const hydrantSpots = [
+        [330, 325], [795, 325], [1005, 325], [1415, 955], [795, 955],
+        [330, 1195], [795, 1195], [1005, 1195], [1415, 1825], [1645, 955],
+        [2115, 955], [2330, 955], [2675, 1195], [1645, 1825], [2115, 1825]
+      ];
+      for (const [x, y] of hydrantSpots) {
+        this.props.push({
+          type: 'hydrant', x, y, r: 12, hp: 20, maxHp: 20,
+          broken: false, sprayTimer: 0, shake: 0
+        });
+      }
+
+      const trashSpots = [
+        [420, 610], [710, 625], [1020, 580], [1390, 620], [585, 1495],
+        [1100, 1465], [1340, 1465], [1710, 695], [2040, 695], [2380, 880],
+        [1750, 1470], [2000, 1470], [2420, 1500], [770, 1800], [1410, 1480]
+      ];
+      for (const [x, y] of trashSpots) {
+        this.props.push({
+          type: 'trash', x, y, r: 14, hp: 18, maxHp: 18,
+          broken: false, shake: 0
+        });
+      }
+
+      const parkedCars = [
+        { x: 1120, y: 1515, w: 66, h: 34, color: '#ef4444' },
+        { x: 1280, y: 1515, w: 66, h: 34, color: '#3b82f6' },
+        { x: 325,  y: 780,  w: 34, h: 66, color: '#eab308' },
+        { x: 1405, y: 450,  w: 34, h: 66, color: '#10b981' },
+        { x: 2665, y: 480,  w: 34, h: 66, color: '#ec4899' },
+        { x: 2110, y: 1680, w: 34, h: 66, color: '#f97316' }
+      ];
+      for (const c of parkedCars) {
+        this.props.push({
+          type: 'parked_car', x: c.x, y: c.y, w: c.w, h: c.h,
+          r: 26, color: c.color, hp: 60, maxHp: 60,
+          broken: false, alarmTimer: 0, shake: 0
+        });
+      }
+    }
+
+    getZone(x) {
+      return x < SG.DOWNTOWN_SPLIT_X ? 'DOWNTOWN' : 'UPTOWN';
+    }
+
+    isPointInBuilding(x, y, pad = 0) {
+      for (const b of this.buildings) {
+        if (x >= b.x - pad && x <= b.x + b.w + pad && y >= b.y - pad && y <= b.y + b.h + pad) {
+          return b;
+        }
+      }
+      return null;
+    }
+
+    resolveCircleCollisions(ent) {
+      ent.x = Math.max(40, Math.min(SG.WORLD_W - 40, ent.x));
+      ent.y = Math.max(40, Math.min(SG.WORLD_H - 40, ent.y));
+
+      for (const b of this.buildings) {
+        const cx = Math.max(b.x, Math.min(ent.x, b.x + b.w));
+        const cy = Math.max(b.y, Math.min(ent.y, b.y + b.h));
+        const dx = ent.x - cx;
+        const dy = ent.y - cy;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < ent.r * ent.r) {
+          const dist = Math.sqrt(distSq) || 0.001;
+          if (distSq < 0.0001) {
+            const dL = ent.x - b.x, dR = b.x + b.w - ent.x;
+            const dT = ent.y - b.y, dB = b.y + b.h - ent.y;
+            const m = Math.min(dL, dR, dT, dB);
+            if (m === dL) ent.x = b.x - ent.r;
+            else if (m === dR) ent.x = b.x + b.w + ent.r;
+            else if (m === dT) ent.y = b.y - ent.r;
+            else ent.y = b.y + b.h + ent.r;
+          } else {
+            ent.x += (dx / dist) * (ent.r - dist);
+            ent.y += (dy / dist) * (ent.r - dist);
+          }
+        }
+      }
+
+      // Fountain collision
+      {
+        const dx = ent.x - this.fountain.x;
+        const dy = ent.y - this.fountain.y;
+        const minR = ent.r + this.fountain.r;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < minR * minR) {
+          const d = Math.sqrt(d2) || 0.01;
+          ent.x = this.fountain.x + (dx / d) * minR;
+          ent.y = this.fountain.y + (dy / d) * minR;
+        }
+      }
+
+      // Props collision
+      for (const p of this.props) {
+        if (p.type === 'parked_car') {
+          const hw = p.w / 2, hh = p.h / 2;
+          const cx = Math.max(p.x - hw, Math.min(ent.x, p.x + hw));
+          const cy = Math.max(p.y - hh, Math.min(ent.y, p.y + hh));
+          const dx = ent.x - cx, dy = ent.y - cy;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < ent.r * ent.r) {
+            const d = Math.sqrt(d2) || 0.01;
+            ent.x += (dx / d) * (ent.r - d);
+            ent.y += (dy / d) * (ent.r - d);
+          }
+        } else if (!p.broken) {
+          const dx = ent.x - p.x, dy = ent.y - p.y;
+          const minR = ent.r + p.r;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < minR * minR) {
+            const d = Math.sqrt(d2) || 0.01;
+            ent.x = p.x + (dx / d) * minR;
+            ent.y = p.y + (dy / d) * minR;
+          }
+        }
+      }
+    }
+
+    update(dt, fighters) {
+      this.trafficTimer += dt;
+      const durations = [5.5, 1.5, 5.5, 1.5];
+      if (this.trafficTimer >= durations[this.trafficPhase]) {
+        this.trafficTimer = 0;
+        this.trafficPhase = (this.trafficPhase + 1) % 4;
+      }
+
+      for (const el of this.elevators) {
+        let near = false;
+        for (const f of fighters) {
+          if (f && !f.ko && Math.hypot(f.x - (el.x + el.w / 2), f.y - (el.y + 30)) < 95) {
+            near = true; break;
+          }
+        }
+        el.openAmt += ((near ? 1 : 0) - el.openAmt) * Math.min(1, dt * 6);
+      }
+    }
+  }
+
+  SG.CityWorld = CityWorld;
+})(window.StreetGrudge);
+
+
+/* === src/fighters.js === */
+/**
+ * Street Grudge — Fighter Entity & Character-Specific Special Attack Archetypes
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  class Fighter {
+    constructor(cfg) {
+      this.id = cfg.id;
+      this.name = cfg.name;
+      this.isPlayer = !!cfg.isPlayer;
+      this.playerNum = cfg.playerNum || 0; // 1 for P1, 2 for P2, 0 for AI
+      this.x = cfg.x;
+      this.y = cfg.y;
+      this.vx = 0;
+      this.vy = 0;
+      this.angle = 0;
+      this.r = cfg.r || 20;
+      this.maxHp = cfg.maxHp || 120;
+      this.hp = this.maxHp;
+      this.speed = cfg.speed || 235;
+      this.giColor = cfg.giColor || '#f8fafc';
+      this.trimColor = cfg.trimColor || '#dc2626';
+      this.skinColor = cfg.skinColor || '#f5cfa0';
+      this.hairColor = cfg.hairColor || '#1e1b18';
+      this.bandanaColor = cfg.bandanaColor || '#ef4444';
+      this.specialKind = cfg.specialKind || 'fireball';
+      this.specialName = cfg.specialName || 'PETTY HADOU-WAVE!';
+      this.specialColor = cfg.specialColor || '#f97316';
+      this.taunts = cfg.taunts || [];
+
+      // Signature Grudge / Calming Down Meter (0..100)
+      this.grudge = 100;
+      this.ko = false;
+      this.koTimer = 0;
+
+      // Combat State
+      this.attackType = null; // 'punch' | 'kick' | 'special'
+      this.attackTimer = 0;
+      this.attackDuration = 0;
+      this.attackHitApplied = false;
+      this.comboStep = 0;
+      this.comboResetTimer = 0;
+      this.attackCooldown = 0;
+      this.specialCooldown = 0;
+      this.dashTimer = 0;
+      this.dashCooldown = 0;
+      this.dashDirX = 0;
+      this.dashDirY = 0;
+      this.spinAngle = 0;
+      this.blocking = false;
+      this.hitstun = 0;
+      this.flashTimer = 0;
+      this.invulnTimer = 0;
+      this.walkCycle = 0;
+      this.subwayCooldown = 0;
+      this.lowGrudgeMutterTimer = 3.5;
+
+      // Speech Bubble
+      this.speech = '';
+      this.speechTimer = 0;
+      this.shoutCooldown = 0;
+
+      // AI Finite State Machine (for Rival AI)
+      this.aiState = SG.AI_STATES.WANDER;
+      this.aiTimer = 0;
+      this.homeX = cfg.x;
+      this.homeY = cfg.y;
+      this.targetX = cfg.x;
+      this.targetY = cfg.y;
+      this.investigateX = 0;
+      this.investigateY = 0;
+      this.aiAttackDelay = 0.5;
+      this.aiStrafeDir = Math.random() < 0.5 ? 1 : -1;
+      this.aiCalmRate = 0.48 + Math.random() * 0.25;
+      this.spawnLabel = '';
+    }
+
+    say(text, duration = 2.6) {
+      this.speech = text;
+      this.speechTimer = duration;
+    }
+
+    getDamageMultiplier() {
+      if (this.grudge >= 70) return 1.35;
+      if (this.grudge >= 35) return 1.0;
+      return 0.75;
+    }
+
+    startAttack(type, game) {
+      if (this.ko || this.hitstun > 0 || this.attackTimer > 0 || this.attackCooldown > 0 || this.dashTimer > 0) {
+        return false;
+      }
+
+      if (type === 'special') {
+        if (this.specialCooldown > 0) return false;
+        if (this.isPlayer && this.grudge < 40) {
+          this.say(SG.currentLang === 'tr' ? 'Öfkem yetmiyor! (>%40)' : 'Not mad enough! (>40%)', 1.6);
+          return false;
+        }
+        this.attackType = 'special';
+        this.attackDuration = 0.44;
+        this.attackTimer = 0.44;
+        this.attackCooldown = 0.24;
+        this.specialCooldown = this.isPlayer ? 2.6 : 4.6;
+        this.attackHitApplied = false;
+        this.say(this.specialName, 1.35);
+        game.executeCharacterSpecial(this);
+        return true;
+      }
+
+      if (type === 'punch') {
+        this.comboStep = (this.comboResetTimer > 0) ? ((this.comboStep + 1) % 3) : 0;
+        this.comboResetTimer = 0.65;
+        this.attackType = 'punch';
+        this.attackDuration = 0.19;
+        this.attackTimer = 0.19;
+        this.attackCooldown = 0.08;
+        this.attackHitApplied = false;
+        game.sfx.punchSwing();
+        return true;
+      }
+
+      if (type === 'kick') {
+        this.attackType = 'kick';
+        this.attackDuration = 0.28;
+        this.attackTimer = 0.28;
+        this.attackCooldown = 0.16;
+        this.attackHitApplied = false;
+        game.sfx.punchSwing();
+        return true;
+      }
+
+      return false;
+    }
+
+    startDash(dirX, dirY, game) {
+      if (this.ko || this.hitstun > 0 || this.dashTimer > 0 || this.dashCooldown > 0) return false;
+      const len = Math.hypot(dirX, dirY);
+      this.dashDirX = len > 0.01 ? dirX / len : Math.cos(this.angle);
+      this.dashDirY = len > 0.01 ? dirY / len : Math.sin(this.angle);
+      this.dashTimer = 0.16;
+      this.dashCooldown = 0.62;
+      this.invulnTimer = 0.18;
+      game.sfx.dash();
+      return true;
+    }
+  }
+
+  SG.Fighter = Fighter;
+})(window.StreetGrudge);
+
+
+/* === src/renderer.js === */
+/**
+ * Street Grudge — Cel-Shaded Comic-Book 2D Top-Down Renderer
+ * Supports single-screen camera AND automatic 2P split-screen -> merged brawl camera!
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  class ComicRenderer {
+    constructor(canvas, miniCanvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext('2d');
+      this.miniCanvas = miniCanvas;
+      this.miniCtx = miniCanvas.getContext('2d');
+    }
+
+    render(game) {
+      const ctx = this.ctx;
+      const vw = game.viewW;
+      const vh = game.viewH;
+      ctx.clearRect(0, 0, vw, vh);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, vw, vh);
+
+      if (game.running && game.mode === '2p' && game.isSplitScreen) {
+        const halfW = Math.floor(vw / 2);
+
+        // Left Viewport: Player 1
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, halfW, vh);
+        ctx.clip();
+        this.renderWorldViewport(ctx, game, game.cam1, 0, 0, halfW, vh);
+        this.drawViewportBadge(ctx, 14, vh - 36, 'P1 CAM', '#ffe135', '#dc2626');
+        ctx.restore();
+
+        // Right Viewport: Player 2
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(halfW, 0, vw - halfW, vh);
+        ctx.clip();
+        this.renderWorldViewport(ctx, game, game.cam2, halfW, 0, vw - halfW, vh);
+        this.drawViewportBadge(ctx, vw - 98, vh - 36, 'P2 CAM', '#38bdf8', '#1d4ed8');
+        ctx.restore();
+
+        // Bold Comic Ink Split-Screen Divider
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(halfW - 3, 0, 6, vh);
+        ctx.fillStyle = '#ffe135';
+        ctx.fillRect(halfW - 1, 0, 2, vh);
+      } else {
+        this.renderWorldViewport(ctx, game, game.cam, 0, 0, vw, vh);
+      }
+
+      if (game.running && game.player) {
+        if (game.mode === '1p') {
+          this.drawOffscreenRivalPointers(ctx, game);
+        }
+        this.drawMinimap(game);
+      }
+
+      // Subway Express Animated Comic Overlay
+      if (game.subwayOverlayTimer > 0) {
+        this.drawSubwayExpressTransition(ctx, vw, vh, game.subwayOverlayTimer);
+      }
+
+      // KO / Hit White Comic Flash
+      if (game.screenFlash > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${game.screenFlash * 0.65})`;
+        ctx.fillRect(0, 0, vw, vh);
+      }
+    }
+
+    drawViewportBadge(ctx, x, y, label, bg, fg) {
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2.5;
+      ctx.fillRect(x, y, 82, 24);
+      ctx.strokeRect(x, y, 82, 24);
+      ctx.fillStyle = fg;
+      ctx.font = '900 13px Impact, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x + 41, y + 17);
+      ctx.textAlign = 'left';
+    }
+
+    drawSubwayExpressTransition(ctx, vw, vh, timer) {
+      const alpha = Math.min(1, timer * 2.5);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, vh * 0.40, vw, vh * 0.20);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(0, vh * 0.40, vw, vh * 0.20);
+
+      // Animated streaking subway train cars
+      const progress = 1 - Math.min(1, timer / 0.65);
+      const trainX = -320 + progress * (vw + 640);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.fillRect(trainX, vh * 0.43, 300, vh * 0.14);
+      ctx.strokeRect(trainX, vh * 0.43, 300, vh * 0.14);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(trainX, vh * 0.49, 300, 12);
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(trainX + 20 + i * 68, vh * 0.445, 48, 22);
+        ctx.strokeRect(trainX + 20 + i * 68, vh * 0.445, 48, 22);
+      }
+      ctx.restore();
+    }
+
+    renderWorldViewport(ctx, game, cam, vx, vy, vw, vh) {
+      ctx.save();
+      const shakeX = (Math.random() - 0.5) * cam.shake;
+      const shakeY = (Math.random() - 0.5) * cam.shake;
+      ctx.translate(vx + vw / 2 + shakeX, vy + vh / 2 + shakeY);
+      ctx.scale(cam.zoom, cam.zoom);
+      ctx.translate(-cam.x, -cam.y);
+
+      this.drawCityGround(ctx, game.world);
+      this.drawRoadsAndTrafficLights(ctx, game.world);
+      this.drawSubwaysAndElevators(ctx, game.world);
+      this.drawProps(ctx, game.world);
+      this.drawPickups(ctx, game.pickups);
+      this.drawSoundRings(ctx, game.soundRings);
+      this.drawAfterimages(ctx, game.afterimages);
+      this.drawPedestrians(ctx, game.pedestrians);
+      this.drawCars(ctx, game.cars);
+
+      for (const r of game.rivals) this.drawFighter(ctx, r, game.showAiDebug);
+      if (game.player2) this.drawFighter(ctx, game.player2, game.showAiDebug);
+      if (game.player) this.drawFighter(ctx, game.player, game.showAiDebug);
+
+      this.drawProjectiles(ctx, game.projectiles);
+      this.drawBuildings3DRoof(ctx, game.world, cam);
+      this.drawTrees(ctx, game.world);
+      this.drawParticles(ctx, game.particles);
+      this.drawSpeechBubbles(ctx, game);
+      this.drawPopups(ctx, game.popups);
+
+      ctx.restore();
+    }
+
+    drawCityGround(ctx, world) {
+      ctx.fillStyle = '#d6d3d1';
+      ctx.fillRect(0, 0, SG.DOWNTOWN_SPLIT_X, SG.WORLD_H);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(SG.DOWNTOWN_SPLIT_X, 0, SG.WORLD_W - SG.DOWNTOWN_SPLIT_X, SG.WORLD_H);
+
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.08)';
+      ctx.lineWidth = 1.5;
+      for (let x = 0; x <= SG.WORLD_W; x += 64) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, SG.WORLD_H); ctx.stroke();
+      }
+      for (let y = 0; y <= SG.WORLD_H; y += 64) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(SG.WORLD_W, y); ctx.stroke();
+      }
+
+      // Uptown Marble Plaza + Animated Fountain
+      ctx.fillStyle = '#cbd5e1';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.fillRect(1660, 1425, 435, 165);
+      ctx.strokeRect(1660, 1425, 435, 165);
+
+      const f = world.fountain;
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath(); ctx.arc(f.x, f.y, f.r - 8, 0, Math.PI * 2); ctx.fill();
+      const ripple = (performance.now() * 0.03) % (f.r - 12);
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 6 + ripple, 0, Math.PI * 2); ctx.stroke();
+
+      // Downtown Parking Lot
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(1040, 1455, 335, 105);
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 2.5;
+      for (let x = 1070; x <= 1350; x += 70) {
+        ctx.beginPath(); ctx.moveTo(x, 1465); ctx.lineTo(x, 1545); ctx.stroke();
+      }
+
+      // Library Back Alley
+      ctx.fillStyle = '#a8a29e';
+      ctx.fillRect(360, 575, 410, 100);
+      ctx.font = 'bold 14px "Courier New", monospace';
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.55)';
+      ctx.fillText('← LIBRARY ALLEY — NO LOITERING', 405, 632);
+
+      // Street Floor Landmarks
+      ctx.font = '900 13px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      for (const lm of world.landmarks) {
+        ctx.fillStyle = 'rgba(17, 17, 17, 0.42)';
+        ctx.fillText(lm.name, lm.x, lm.y + 52);
+      }
+      ctx.textAlign = 'left';
+    }
+
+    drawRoadsAndTrafficLights(ctx, world) {
+      ctx.fillStyle = '#334155';
+      for (const hr of world.hRoads) {
+        ctx.fillRect(0, hr.y, SG.WORLD_W, hr.h);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, hr.y, SG.WORLD_W, 4);
+        ctx.fillRect(0, hr.y + hr.h - 4, SG.WORLD_W, 4);
+        ctx.fillStyle = '#334155';
+      }
+      for (const vr of world.vRoads) {
+        ctx.fillRect(vr.x, 0, vr.w, SG.WORLD_H);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(vr.x, 0, 4, SG.WORLD_H);
+        ctx.fillRect(vr.x + vr.w - 4, 0, 4, SG.WORLD_H);
+        ctx.fillStyle = '#334155';
+      }
+
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([24, 20]);
+      for (const hr of world.hRoads) {
+        ctx.beginPath(); ctx.moveTo(0, hr.y + hr.h / 2); ctx.lineTo(SG.WORLD_W, hr.y + hr.h / 2); ctx.stroke();
+      }
+      for (const vr of world.vRoads) {
+        ctx.beginPath(); ctx.moveTo(vr.x + vr.w / 2, 0); ctx.lineTo(vr.x + vr.w / 2, SG.WORLD_H); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      for (const inter of world.intersections) {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(inter.x + 4, inter.y + 4, inter.w - 8, inter.h - 8);
+        ctx.fillStyle = '#f8fafc';
+        for (let s = 16; s < inter.w - 16; s += 20) {
+          ctx.fillRect(inter.x + s, inter.y - 14, 11, 16);
+          ctx.fillRect(inter.x + s, inter.y + inter.h - 2, 11, 16);
+        }
+        for (let s = 16; s < inter.h - 16; s += 20) {
+          ctx.fillRect(inter.x - 14, inter.y + s, 16, 11);
+          ctx.fillRect(inter.x + inter.w - 2, inter.y + s, 16, 11);
+        }
+        const nsColor = world.trafficPhase === 0 ? '#22c55e' : (world.trafficPhase === 1 ? '#facc15' : '#ef4444');
+        const ewColor = world.trafficPhase === 2 ? '#22c55e' : (world.trafficPhase === 3 ? '#facc15' : '#ef4444');
+        this.drawTrafficLightPost(ctx, inter.x - 14, inter.y - 14, nsColor);
+        this.drawTrafficLightPost(ctx, inter.x + inter.w + 14, inter.y + inter.h + 14, ewColor);
+      }
+
+      ctx.save();
+      ctx.font = '900 18px Impact, sans-serif';
+      ctx.fillStyle = 'rgba(255, 225, 53, 0.55)';
+      ctx.translate(1530, 680);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('◄ DOWNTOWN   |   UPTOWN ►', -100, 6);
+      ctx.restore();
+    }
+
+    drawTrafficLightPost(ctx, x, y, lightColor) {
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = lightColor;
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    drawSubwaysAndElevators(ctx, world) {
+      for (const sub of world.subways) {
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.fillRect(sub.x, sub.y, sub.w, sub.h);
+        ctx.strokeRect(sub.x, sub.y, sub.w, sub.h);
+
+        for (let i = 0; i < 6; i++) {
+          const shade = 210 - i * 28;
+          ctx.fillStyle = `rgb(${shade},${shade},${shade + 10})`;
+          ctx.fillRect(sub.x + 8, sub.y + 8 + i * 13, sub.w - 16, 10);
+        }
+
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(sub.x - 4, sub.y - 20, sub.w + 8, 22);
+        ctx.strokeRect(sub.x - 4, sub.y - 20, sub.w + 8, 22);
+        ctx.fillStyle = '#ffe135';
+        ctx.font = 'bold 11px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`M ${sub.name}`, sub.x + sub.w / 2, sub.y - 5);
+        ctx.fillStyle = '#0284c7';
+        ctx.font = 'bold 10px "Courier New", monospace';
+        ctx.fillText('WALK IN: EXPRESS LINE', sub.x + sub.w / 2, sub.y + sub.h + 14);
+        ctx.textAlign = 'left';
+      }
+
+      for (const el of world.elevators) {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(el.x, el.y, el.w, el.h);
+        const halfW = (el.w / 2) * (1 - el.openAmt * 0.85);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2.5;
+        ctx.fillRect(el.x, el.y, halfW, el.h);
+        ctx.strokeRect(el.x, el.y, halfW, el.h);
+        ctx.fillRect(el.x + el.w - halfW, el.y, halfW, el.h);
+        ctx.strokeRect(el.x + el.w - halfW, el.y, halfW, el.h);
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillRect(el.x + 6, el.y + el.h + 4, el.w - 12, 22);
+        ctx.strokeRect(el.x + 6, el.y + el.h + 4, el.w - 12, 22);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 9px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('ELEVATOR', el.x + el.w / 2, el.y + el.h + 18);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    drawProps(ctx, world) {
+      for (const p of world.props) {
+        const sx = p.shake > 0 ? (Math.random() - 0.5) * 6 : 0;
+        const sy = p.shake > 0 ? (Math.random() - 0.5) * 6 : 0;
+
+        if (p.type === 'hydrant') {
+          if (p.broken) {
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.42)';
+            ctx.beginPath(); ctx.arc(p.x, p.y, 28, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#b91c1c';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          } else {
+            ctx.fillStyle = 'rgba(0,0,0,0.22)';
+            ctx.beginPath(); ctx.arc(p.x + 3, p.y + 4, 11, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ef4444';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 4, 0, Math.PI * 2); ctx.fill();
+          }
+        } else if (p.type === 'trash') {
+          if (p.broken) {
+            ctx.fillStyle = '#64748b';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.fillRect(p.x - 10, p.y - 6, 20, 12);
+            ctx.strokeRect(p.x - 10, p.y - 6, 20, 12);
+          } else {
+            ctx.fillStyle = 'rgba(0,0,0,0.22)';
+            ctx.beginPath(); ctx.arc(p.x + 3, p.y + 4, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#64748b';
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#94a3b8';
+            ctx.beginPath(); ctx.arc(p.x + sx, p.y + sy, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          }
+        } else if (p.type === 'parked_car') {
+          this.drawCarShape(ctx, p.x + sx, p.y + sy, p.w, p.h, p.color, false, p.alarmTimer > 0);
+        }
+      }
+    }
+
+    drawCarShape(ctx, x, y, w, h, color, isTaxi = false, alarmOn = false) {
+      const hw = w / 2, hh = h / 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(x - hw + 5, y - hh + 6, w, h);
+
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x - hw, y - hh, w, h, 7);
+      else ctx.rect(x - hw, y - hh, w, h);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x - hw * 0.58, y - hh * 0.65, w * 0.58, h * 0.65);
+      ctx.fillStyle = color;
+      ctx.fillRect(x - hw * 0.34, y - hh * 0.45, w * 0.34, h * 0.45);
+      ctx.strokeRect(x - hw * 0.58, y - hh * 0.65, w * 0.58, h * 0.65);
+
+      if (isTaxi) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(x - 6, y - 4, 12, 8);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(x - 4, y - 2, 8, 4);
+      }
+
+      if (alarmOn && Math.floor(performance.now() / 130) % 2 === 0) {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.65)';
+        ctx.beginPath(); ctx.arc(x - hw, y - hh, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + hw, y + hh, 10, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    drawCars(ctx, cars) {
+      for (const c of cars) this.drawCarShape(ctx, c.x, c.y, c.w, c.h, c.color, c.isTaxi, false);
+    }
+
+    drawPedestrians(ctx, peds) {
+      for (const ped of peds) {
+        ctx.save();
+        ctx.translate(ped.x, ped.y);
+        ctx.rotate(ped.angle);
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath(); ctx.ellipse(2, 4, 11, 9, 0, 0, Math.PI * 2); ctx.fill();
+
+        const swing = Math.sin(ped.walkPhase) * 3;
+        ctx.fillStyle = ped.color;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.ellipse(0, 0, 9, 13, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = ped.skin;
+        ctx.beginPath(); ctx.arc(6 + swing, -10, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(6 - swing, 10, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = ped.skin;
+        ctx.beginPath(); ctx.arc(2, 0, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ped.hair;
+        ctx.beginPath(); ctx.arc(0, 0, 6.5, Math.PI * 0.55, Math.PI * 1.45); ctx.fill();
+        ctx.restore();
+
+        if (ped.panicTimer > 0) {
+          ctx.fillStyle = '#ef4444';
+          ctx.font = '900 15px Impact, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('!', ped.x, ped.y - 18);
+          ctx.textAlign = 'left';
+        }
+      }
+    }
+
+    drawPickups(ctx, pickups) {
+      for (const pk of pickups) {
+        const yOff = Math.sin(pk.bob) * 4;
+        ctx.save();
+        ctx.translate(pk.x, pk.y + yOff);
+        ctx.fillStyle = pk.kind === 'espresso' ? '#f97316' : '#22c55e';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pk.kind === 'espresso' ? '☕' : '🌮', 0, 1);
+        ctx.restore();
+      }
+    }
+
+    drawFighter(ctx, f, showAiDebug) {
+      ctx.save();
+      ctx.translate(f.x, f.y);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
+      ctx.beginPath();
+      ctx.ellipse(3, 6, f.r * 1.05, f.r * 0.85, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (!f.ko && f.grudge >= 70 && (f.isPlayer || f.aiState === SG.AI_STATES.COMBAT)) {
+        const pulse = 1 + Math.sin(performance.now() * 0.015) * 0.12;
+        ctx.strokeStyle = f.playerNum === 2 ? 'rgba(56, 189, 248, 0.78)' : 'rgba(239, 68, 68, 0.75)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, (f.r + 7) * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (f.blocking && !f.ko) {
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.r + 8, f.angle - 1.0, f.angle + 1.0);
+        ctx.stroke();
+      }
+
+      if (f.ko) {
+        ctx.rotate(f.angle + 0.8);
+        ctx.globalAlpha = 0.88;
+        ctx.fillStyle = f.giColor;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(-f.r * 1.2, -f.r * 0.6, f.r * 2.4, f.r * 1.2, 8);
+        else ctx.rect(-f.r * 1.2, -f.r * 0.6, f.r * 2.4, f.r * 1.2);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = f.skinColor;
+        ctx.beginPath(); ctx.arc(f.r * 0.9, 0, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        const tNow = performance.now() * 0.005;
+        ctx.fillStyle = '#ffe135';
+        for (let i = 0; i < 3; i++) {
+          const a = tNow + i * (Math.PI * 2 / 3);
+          ctx.beginPath();
+          ctx.arc(f.r * 0.9 + Math.cos(a) * 14, Math.sin(a) * 10, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        return;
+      }
+
+      const drawAngle = f.attackTimer > 0 && f.attackType === 'special' && (f.specialKind === 'cyclone' || f.specialKind === 'lariat')
+        ? f.angle + (1 - f.attackTimer / f.attackDuration) * Math.PI * 6
+        : f.angle;
+      ctx.rotate(drawAngle);
+
+      const swing = Math.sin(f.walkCycle) * 5;
+      let leftArmX = 6 + swing, leftArmY = -f.r * 0.85;
+      let rightArmX = 6 - swing, rightArmY = f.r * 0.85;
+      let kickExtend = 0;
+
+      if (f.attackTimer > 0) {
+        const prog = 1 - (f.attackTimer / f.attackDuration);
+        const thrust = Math.sin(prog * Math.PI);
+        if (f.attackType === 'punch') {
+          if (f.comboStep % 2 === 0) { rightArmX += thrust * 26; rightArmY -= thrust * 6; }
+          else { leftArmX += thrust * 26; leftArmY += thrust * 6; }
+          ctx.strokeStyle = f.grudge >= 70 ? '#ffe135' : '#ffffff';
+          ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.arc(10, 0, f.r + 16, -0.75, 0.75); ctx.stroke();
+        } else if (f.attackType === 'kick') {
+          kickExtend = thrust * 30;
+          ctx.strokeStyle = '#fb923c';
+          ctx.lineWidth = 7;
+          ctx.beginPath(); ctx.arc(8, 0, f.r + 24, -1.1, 1.1); ctx.stroke();
+        } else if (f.attackType === 'special') {
+          leftArmX += 18; rightArmX += 18;
+          leftArmY = -8; rightArmY = 8;
+          ctx.fillStyle = f.specialColor;
+          ctx.globalAlpha = 0.65;
+          ctx.beginPath(); ctx.arc(22, 0, 16 + thrust * 12, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      } else if (f.blocking) {
+        leftArmX = 14; leftArmY = -8;
+        rightArmX = 14; rightArmY = 8;
+      }
+
+      const hitWhite = f.flashTimer > 0;
+      const flutter = Math.sin(performance.now() * 0.015 + f.x * 0.05) * 4;
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-8, -3); ctx.quadraticCurveTo(-18, -7 + flutter, -26, -4 + flutter * 1.4);
+      ctx.moveTo(-8, 3);  ctx.quadraticCurveTo(-18, 7 + flutter, -25, 6 + flutter * 1.2);
+      ctx.stroke();
+      ctx.strokeStyle = f.bandanaColor;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      if (kickExtend > 2) {
+        ctx.fillStyle = hitWhite ? '#ffffff' : f.trimColor;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(12 + kickExtend, 6, 11, 7, 0.2, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+      }
+
+      ctx.fillStyle = hitWhite ? '#ffffff' : f.giColor;
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, f.r * 0.72, f.r * 1.05, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = hitWhite ? '#ffffff' : f.trimColor;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(4, -f.r * 0.55); ctx.lineTo(10, 0); ctx.lineTo(4, f.r * 0.55);
+      ctx.stroke();
+
+      ctx.fillStyle = hitWhite ? '#ffffff' : (f.playerNum === 1 ? '#ef4444' : (f.playerNum === 2 ? '#38bdf8' : f.skinColor));
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath(); ctx.arc(leftArmX, leftArmY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(rightArmX, rightArmY, 7.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = hitWhite ? '#ffffff' : f.skinColor;
+      ctx.beginPath(); ctx.arc(2, 0, f.r * 0.56, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = hitWhite ? '#ffffff' : f.hairColor;
+      ctx.beginPath();
+      ctx.arc(0, 0, f.r * 0.54, Math.PI * 0.5, Math.PI * 1.5);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = f.bandanaColor;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(2, 0, f.r * 0.53, -0.8, 0.8);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Overhead tags
+      if (!f.isPlayer) {
+        const barW = 46;
+        ctx.fillStyle = '#111';
+        ctx.fillRect(f.x - barW / 2 - 1, f.y - f.r - 17, barW + 2, 7);
+        ctx.fillStyle = '#991b1b';
+        ctx.fillRect(f.x - barW / 2, f.y - f.r - 16, barW, 5);
+        ctx.fillStyle = f.aiState === SG.AI_STATES.CALMED ? '#38bdf8' : '#facc15';
+        ctx.fillRect(f.x - barW / 2, f.y - f.r - 16, barW * (f.hp / f.maxHp), 5);
+
+        if (f.aiState === SG.AI_STATES.CALMED) {
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('☕🤷', f.x, f.y - f.r - 22);
+          ctx.textAlign = 'left';
+        } else if (showAiDebug) {
+          ctx.font = 'bold 10px "Courier New", monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#111';
+          ctx.fillRect(f.x - 56, f.y - f.r - 32, 112, 13);
+          ctx.fillStyle = f.aiState === SG.AI_STATES.COMBAT ? '#f87171' : '#a7f3d0';
+          ctx.fillText(f.aiState, f.x, f.y - f.r - 22);
+          ctx.textAlign = 'left';
+        }
+      } else {
+        const markerColor = f.playerNum === 2 ? '#38bdf8' : '#ffe135';
+        ctx.fillStyle = markerColor;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(f.x, f.y - f.r - 10);
+        ctx.lineTo(f.x - 7, f.y - f.r - 20);
+        ctx.lineTo(f.x + 7, f.y - f.r - 20);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.font = '900 10px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#111';
+        ctx.fillText(`P${f.playerNum}`, f.x, f.y - f.r - 22);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    drawBuildings3DRoof(ctx, world, cam) {
+      for (const b of world.buildings) {
+        const cx = b.x + b.w / 2;
+        const cy = b.y + b.h / 2;
+        const ox = Math.max(-28, Math.min(28, (cx - cam.x) * 0.055));
+        const oy = Math.max(-28, Math.min(28, (cy - cam.y) * 0.055));
+        const rx = b.x + ox;
+        const ry = b.y + oy;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.fillRect(b.x + 10, b.y + 12, b.w, b.h);
+
+        ctx.fillStyle = b.color;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+        const quad = (x1, y1, x2, y2, x3, y3, x4, y4) => {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        };
+        quad(b.x, b.y, rx, ry, rx + b.w, ry, b.x + b.w, b.y);
+        quad(b.x, b.y + b.h, rx, ry + b.h, rx + b.w, ry + b.h, b.x + b.w, b.y + b.h);
+        quad(b.x, b.y, rx, ry, rx, ry + b.h, b.x, b.y + b.h);
+        quad(b.x + b.w, b.y, rx + b.w, ry, rx + b.w, ry + b.h, b.x + b.w, b.y + b.h);
+
+        ctx.fillStyle = b.roofColor;
+        ctx.fillRect(rx, ry, b.w, b.h);
+        ctx.strokeRect(rx, ry, b.w, b.h);
+
+        ctx.strokeStyle = 'rgba(17,17,17,0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rx + 12, ry + 12, b.w - 24, b.h - 24);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.fillRect(rx + 22, ry + 22, 34, 24);
+        ctx.strokeRect(rx + 22, ry + 22, 34, 24);
+
+        ctx.font = '900 17px Impact, "Arial Black", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#111';
+        ctx.fillText(b.label, rx + b.w / 2 + 2, ry + b.h / 2 + 2);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillText(b.label, rx + b.w / 2, ry + b.h / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+
+    drawTrees(ctx, world) {
+      for (const tr of world.trees) {
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath(); ctx.arc(tr.x + 5, tr.y + 6, tr.r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#16a34a';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(tr.x, tr.y, tr.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#4ade80';
+        ctx.beginPath(); ctx.arc(tr.x - 5, tr.y - 5, tr.r * 0.52, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    drawProjectiles(ctx, projectiles) {
+      for (const pr of projectiles) {
+        ctx.save();
+        ctx.translate(pr.x, pr.y);
+        ctx.fillStyle = pr.color;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(0, 0, pr.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, 0, pr.r * 0.45, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    drawSoundRings(ctx, rings) {
+      for (const sr of rings) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, sr.alpha);
+        ctx.strokeStyle = sr.color;
+        ctx.lineWidth = sr.lineWidth || 4;
+        ctx.beginPath(); ctx.arc(sr.x, sr.y, sr.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    drawAfterimages(ctx, afterimages) {
+      for (const ai of afterimages) {
+        ctx.save();
+        ctx.globalAlpha = ai.alpha;
+        ctx.fillStyle = ai.color;
+        ctx.beginPath(); ctx.arc(ai.x, ai.y, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    drawParticles(ctx, particles) {
+      for (const pt of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+        ctx.fillStyle = pt.color;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    drawSpeechBubbles(ctx, game) {
+      const speakers = [game.player, game.player2, ...game.rivals, ...game.pedestrians]
+        .filter((s) => s && s.speechTimer > 0 && s.speech);
+      ctx.font = 'bold 12px "Trebuchet MS", sans-serif';
+      for (const s of speakers) {
+        const padX = 10;
+        const textW = ctx.measureText(s.speech).width;
+        const bw = textW + padX * 2;
+        const bh = 24;
+        const bx = s.x - bw / 2;
+        const by = s.y - (s.r || 16) - 46;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 8);
+        else ctx.rect(bx, by, bw, bh);
+        ctx.fill(); ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(s.x - 5, by + bh);
+        ctx.lineTo(s.x, by + bh + 7);
+        ctx.lineTo(s.x + 5, by + bh);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+
+        ctx.fillStyle = '#111';
+        ctx.textAlign = 'center';
+        ctx.fillText(s.speech, s.x, by + 16);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    drawPopups(ctx, popups) {
+      for (const pp of popups) {
+        ctx.save();
+        ctx.translate(pp.x, pp.y);
+        ctx.rotate(pp.rot);
+        ctx.globalAlpha = Math.max(0, pp.life / pp.maxLife);
+        ctx.font = `900 ${Math.round(24 * pp.scale)}px Impact, "Arial Black", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#111';
+        ctx.strokeText(pp.text, 0, 0);
+        ctx.fillStyle = pp.color;
+        ctx.fillText(pp.text, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    drawOffscreenRivalPointers(ctx, game) {
+      const margin = 52;
+      for (const r of game.rivals) {
+        if (r.ko || r.aiState === SG.AI_STATES.CALMED) continue;
+        const sx = (r.x - game.cam.x) * game.cam.zoom + game.viewW / 2;
+        const sy = (r.y - game.cam.y) * game.cam.zoom + game.viewH / 2;
+        if (sx > 20 && sx < game.viewW - 20 && sy > 20 && sy < game.viewH - 20) continue;
+
+        const dist = Math.hypot(r.x - game.player.x, r.y - game.player.y);
+        if (dist > 1100) continue;
+
+        const ang = Math.atan2(sy - game.viewH / 2, sx - game.viewW / 2);
+        const px = Math.max(margin, Math.min(game.viewW - margin, game.viewW / 2 + Math.cos(ang) * (game.viewW * 0.44)));
+        const py = Math.max(105, Math.min(game.viewH - margin, game.viewH / 2 + Math.sin(ang) * (game.viewH * 0.40)));
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(ang);
+        ctx.fillStyle = dist < 500 ? '#ef4444' : '#f97316';
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(14, 0); ctx.lineTo(-9, -9); ctx.lineTo(-5, 0); ctx.lineTo(-9, 9);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    drawMinimap(game) {
+      const mctx = this.miniCtx;
+      const mw = this.miniCanvas.width;
+      const mh = this.miniCanvas.height;
+      const sx = mw / SG.WORLD_W;
+      const sy = mh / SG.WORLD_H;
+
+      mctx.clearRect(0, 0, mw, mh);
+      mctx.fillStyle = '#334155';
+      mctx.fillRect(0, 0, SG.DOWNTOWN_SPLIT_X * sx, mh);
+      mctx.fillStyle = '#1e3a5f';
+      mctx.fillRect(SG.DOWNTOWN_SPLIT_X * sx, 0, (SG.WORLD_W - SG.DOWNTOWN_SPLIT_X) * sx, mh);
+
+      mctx.fillStyle = '#0f172a';
+      for (const hr of game.world.hRoads) mctx.fillRect(0, hr.y * sy, mw, hr.h * sy);
+      for (const vr of game.world.vRoads) mctx.fillRect(vr.x * sx, 0, vr.w * sx, mh);
+
+      mctx.fillStyle = '#64748b';
+      for (const b of game.world.buildings) mctx.fillRect(b.x * sx, b.y * sy, b.w * sx, b.h * sy);
+
+      for (const sub of game.world.subways) {
+        mctx.fillStyle = '#38bdf8';
+        mctx.fillRect(sub.x * sx, sub.y * sy, Math.max(6, sub.w * sx), Math.max(6, sub.h * sy));
+      }
+
+      const pulse = 3 + Math.sin(performance.now() * 0.01) * 1.3;
+      for (const r of game.rivals) {
+        const rx = r.x * sx, ry = r.y * sy;
+        if (r.ko) {
+          mctx.fillStyle = '#475569';
+          mctx.fillRect(rx - 2, ry - 2, 4, 4);
+        } else if (r.aiState === SG.AI_STATES.CALMED) {
+          mctx.fillStyle = '#94a3b8';
+          mctx.beginPath(); mctx.arc(rx, ry, 3, 0, Math.PI * 2); mctx.fill();
+        } else {
+          mctx.fillStyle = r.aiState === SG.AI_STATES.COMBAT ? '#ef4444' : '#fb923c';
+          mctx.beginPath(); mctx.arc(rx, ry, pulse, 0, Math.PI * 2); mctx.fill();
+        }
+      }
+
+      // P2 Cyan Dot (in 2P mode)
+      if (game.player2) {
+        mctx.fillStyle = '#38bdf8';
+        mctx.strokeStyle = '#111';
+        mctx.lineWidth = 1.5;
+        mctx.beginPath();
+        mctx.arc(game.player2.x * sx, game.player2.y * sy, 4.4, 0, Math.PI * 2);
+        mctx.fill(); mctx.stroke();
+      }
+
+      // P1 Yellow Dot
+      if (game.player) {
+        mctx.fillStyle = '#ffe135';
+        mctx.strokeStyle = '#111';
+        mctx.lineWidth = 1.5;
+        mctx.beginPath();
+        mctx.arc(game.player.x * sx, game.player.y * sy, 4.4, 0, Math.PI * 2);
+        mctx.fill(); mctx.stroke();
+      }
+    }
+  }
+
+  SG.ComicRenderer = ComicRenderer;
+})(window.StreetGrudge);
+
+
+/* === src/game.js === */
+/**
+ * Street Grudge — Core Game Engine, 1P Open-World & 2P Split-Screen Local Brawl
+ * Handles main loop, AI Finite State Machines, combat hitboxes, Grudge Meter & HUD.
+ */
+window.StreetGrudge = window.StreetGrudge || {};
+
+(function (SG) {
+  'use strict';
+
+  const t = (key) => SG.t(key);
+  const AI_STATES = SG.AI_STATES;
+
+  class StreetGrudgeGame {
+    constructor() {
+      this.canvas = document.getElementById('gameCanvas');
+      this.miniCanvas = document.getElementById('minimapCanvas');
+      this.renderer = new SG.ComicRenderer(this.canvas, this.miniCanvas);
+      this.sfx = new SG.SoundEngine();
+      this.world = new SG.CityWorld();
+
+      this.keys = {};
+      this.mode = '1p'; // '1p' | '2p'
+      this.running = false;
+      this.gameOver = false;
+      this.showAiDebug = false;
+      this.isSplitScreen = false;
+      this.mergedOnce = false;
+
+      this.player = null;
+      this.player2 = null;
+      this.rivals = [];
+      this.activeRival = null;
+      this.pedestrians = [];
+      this.cars = [];
+      this.particles = [];
+      this.popups = [];
+      this.projectiles = [];
+      this.pickups = [];
+      this.soundRings = [];
+      this.afterimages = [];
+
+      this.cam = { x: 1500, y: 1100, shake: 0, zoom: 1 };
+      this.cam1 = { x: 1000, y: 1100, shake: 0, zoom: 0.96 };
+      this.cam2 = { x: 2000, y: 1100, shake: 0, zoom: 0.96 };
+
+      this.hitstop = 0;
+      this.score = 0;
+      this.comboCount = 0;
+      this.comboTimer = 0;
+      this.walkedDist = 0;
+      this.propsSmashed = 0;
+      this.dayMinutes = 9 * 60;
+      this.grudgeReasonIdx = 0;
+      this.grudgeReason = '';
+      this.ambientSirenTimer = 8;
+      this.bannerTimer = 0;
+      this.screenFlash = 0;
+      this.subwayOverlayTimer = 0;
+
+      this.resize();
+      this.bindEvents();
+      this.syncLanguageUI();
+      this.initPreviewScene();
+
+      this.lastTime = performance.now();
+      requestAnimationFrame((ts) => this.loop(ts));
+    }
+
+    resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.viewW = window.innerWidth;
+      this.viewH = window.innerHeight;
+      this.canvas.width = Math.floor(this.viewW * dpr);
+      this.canvas.height = Math.floor(this.viewH * dpr);
+      this.renderer.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    bindEvents() {
+      window.addEventListener('resize', () => this.resize());
+
+      window.addEventListener('keydown', (e) => {
+        this.sfx.unlock();
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          e.preventDefault();
+        }
+        this.keys[e.code] = true;
+
+        if (e.code === 'KeyR' && (this.running || this.gameOver)) {
+          this.startNewDay();
+          return;
+        }
+        if (e.code === 'KeyM') { this.toggleMute(); return; }
+        if (e.code === 'Tab') { e.preventDefault(); this.toggleAiDebug(); return; }
+
+        if (!this.running || this.gameOver || !this.player) return;
+
+        if (this.mode === '1p') {
+          if (e.code === 'KeyJ' || e.code === 'KeyZ') this.player.startAttack('punch', this);
+          else if (e.code === 'KeyK' || e.code === 'KeyX') this.player.startAttack('kick', this);
+          else if (e.code === 'KeyU' || e.code === 'KeyQ') this.player.startAttack('special', this);
+          else if (e.code === 'Space') {
+            const { dx, dy } = this.getMoveInput(1);
+            this.player.startDash(dx, dy, this);
+          } else if (e.code === 'KeyE') {
+            this.triggerPlayerShout(this.player);
+          }
+        } else {
+          // 2P LOCAL CONTROLS
+          // P1: WASD + F(Punch) G(Kick) H(Block) T(Special) Space(Dash) E(Shout)
+          if (e.code === 'KeyF') this.player.startAttack('punch', this);
+          else if (e.code === 'KeyG') this.player.startAttack('kick', this);
+          else if (e.code === 'KeyT') this.player.startAttack('special', this);
+          else if (e.code === 'Space') {
+            const { dx, dy } = this.getMoveInput(1);
+            this.player.startDash(dx, dy, this);
+          } else if (e.code === 'KeyE') {
+            this.triggerPlayerShout(this.player);
+          }
+
+          // P2: Arrows + J(Punch) K(Kick) L(Block) U(Special) Enter/RShift(Dash) O(Shout)
+          if (this.player2) {
+            if (e.code === 'KeyJ') this.player2.startAttack('punch', this);
+            else if (e.code === 'KeyK') this.player2.startAttack('kick', this);
+            else if (e.code === 'KeyU') this.player2.startAttack('special', this);
+            else if (e.code === 'Enter' || e.code === 'ShiftRight') {
+              const { dx, dy } = this.getMoveInput(2);
+              this.player2.startDash(dx, dy, this);
+            } else if (e.code === 'KeyO') {
+              this.triggerPlayerShout(this.player2);
+            }
+          }
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        this.keys[e.code] = false;
+      });
+
+      this.canvas.addEventListener('mousedown', (e) => {
+        this.sfx.unlock();
+        if (!this.running || this.gameOver || !this.player || this.mode !== '1p') return;
+        if (e.button === 0) this.player.startAttack('punch', this);
+        if (e.button === 2) this.player.startAttack('kick', this);
+      });
+      this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // Mode selectors on Start Modal
+      document.getElementById('btnMode1P').addEventListener('click', () => this.selectMode('1p'));
+      document.getElementById('btnMode2P').addEventListener('click', () => this.selectMode('2p'));
+
+      document.getElementById('btnStartGame').addEventListener('click', () => {
+        this.sfx.unlock();
+        this.startNewDay();
+      });
+      document.getElementById('btnPlayAgain').addEventListener('click', () => {
+        this.sfx.unlock();
+        this.startNewDay();
+      });
+      document.getElementById('btnBackTitle').addEventListener('click', () => {
+        document.getElementById('endModal').classList.add('hidden');
+        document.getElementById('hud').classList.add('hidden');
+        document.getElementById('startModal').classList.remove('hidden');
+        this.running = false;
+        this.gameOver = false;
+      });
+      document.getElementById('btnRestartHud').addEventListener('click', () => {
+        this.sfx.unlock();
+        this.startNewDay();
+      });
+      document.getElementById('btnMute').addEventListener('click', () => this.toggleMute());
+      document.getElementById('btnDebugAi').addEventListener('click', () => this.toggleAiDebug());
+      document.getElementById('btnLang').addEventListener('click', () => this.toggleLang());
+      document.getElementById('startLangBtn').addEventListener('click', () => this.toggleLang());
+
+      // Touch Controls
+      document.querySelectorAll('.touch-btn').forEach((btn) => {
+        const code = btn.dataset.key;
+        const down = (ev) => {
+          ev.preventDefault();
+          this.sfx.unlock();
+          this.keys[code] = true;
+          if (!this.running || this.gameOver || !this.player) return;
+          if (code === 'KeyJ') this.player.startAttack('punch', this);
+          if (code === 'KeyK') this.player.startAttack('kick', this);
+          if (code === 'KeyU') this.player.startAttack('special', this);
+          if (code === 'KeyE') this.triggerPlayerShout(this.player);
+          if (code === 'Space') {
+            const { dx, dy } = this.getMoveInput(1);
+            this.player.startDash(dx, dy, this);
+          }
+        };
+        const up = (ev) => { ev.preventDefault(); this.keys[code] = false; };
+        btn.addEventListener('touchstart', down, { passive: false });
+        btn.addEventListener('touchend', up, { passive: false });
+        btn.addEventListener('mousedown', down);
+        btn.addEventListener('mouseup', up);
+        btn.addEventListener('mouseleave', up);
+      });
+    }
+
+    selectMode(m) {
+      this.mode = m;
+      document.getElementById('btnMode1P').classList.toggle('mode-active', m === '1p');
+      document.getElementById('btnMode2P').classList.toggle('mode-active', m === '2p');
+      this.updateControlsLegend();
+    }
+
+    updateControlsLegend() {
+      const startCtrl = document.getElementById('startControlsBox');
+      const hudCtrl = document.getElementById('controlsStrip');
+      if (this.mode === '1p') {
+        const html = `
+          <span><span class="keycap">WASD/Arrows</span> Move</span>
+          <span><span class="keycap">J</span> Punch</span>
+          <span><span class="keycap">K</span> Kick</span>
+          <span><span class="keycap">Space</span> Dash</span>
+          <span><span class="keycap">L</span> Block</span>
+          <span><span class="keycap">U</span> Special</span>
+          <span><span class="keycap">E</span> Shout</span>`;
+        startCtrl.innerHTML = html;
+        hudCtrl.innerHTML = html;
+      } else {
+        const html = `
+          <span style="color:#ffe135"><b>P1:</b> <span class="keycap">WASD</span> <span class="keycap">F</span>Punch <span class="keycap">G</span>Kick <span class="keycap">H</span>Blk <span class="keycap">T</span>Spec <span class="keycap">Space</span>Dash <span class="keycap">E</span>Yell</span>
+          <span style="color:#38bdf8"><b>P2:</b> <span class="keycap">Arrows</span> <span class="keycap">J</span>Punch <span class="keycap">K</span>Kick <span class="keycap">L</span>Blk <span class="keycap">U</span>Spec <span class="keycap">Enter</span>Dash <span class="keycap">O</span>Yell</span>`;
+        startCtrl.innerHTML = html;
+        hudCtrl.innerHTML = html;
+      }
+    }
+
+    toggleMute() {
+      this.sfx.muted = !this.sfx.muted;
+      document.getElementById('btnMute').textContent = this.sfx.muted ? 'SFX: OFF' : 'SFX: ON';
+    }
+
+    toggleAiDebug() {
+      this.showAiDebug = !this.showAiDebug;
+      document.getElementById('btnDebugAi').textContent = this.showAiDebug ? 'AI FSM: ON' : 'AI FSM: OFF';
+    }
+
+    toggleLang() {
+      SG.currentLang = SG.currentLang === 'en' ? 'tr' : 'en';
+      this.syncLanguageUI();
+    }
+
+    syncLanguageUI() {
+      document.getElementById('startSubtitle').textContent = t('subtitle');
+      document.getElementById('startPitch').innerHTML = t('pitch');
+      document.getElementById('card1Title').textContent = t('card1Title');
+      document.getElementById('card1Body').innerHTML = t('card1Body');
+      document.getElementById('card2Title').textContent = t('card2Title');
+      document.getElementById('card2Body').innerHTML = t('card2Body');
+      document.getElementById('card3Title').textContent = t('card3Title');
+      document.getElementById('card3Body').innerHTML = t('card3Body');
+      document.getElementById('btnMode1P').textContent = t('mode1p');
+      document.getElementById('btnMode2P').textContent = t('mode2p');
+      document.getElementById('btnStartGame').textContent = t('startBtn');
+      document.getElementById('btnPlayAgain').textContent = t('playAgainBtn');
+      document.getElementById('p1Name').textContent = t('p1Name');
+      document.getElementById('grudgeLabel').textContent = t('grudge');
+      const reasons = t('reasons');
+      this.grudgeReason = reasons[this.grudgeReasonIdx % reasons.length];
+      this.updateControlsLegend();
+    }
+
+    initPreviewScene() {
+      this.spawnTrafficAndPedestrians();
+      this.cam.x = 1350;
+      this.cam.y = 1020;
+    }
+
+    startNewDay() {
+      this.world.resetProps();
+      this.particles = [];
+      this.popups = [];
+      this.projectiles = [];
+      this.pickups = [];
+      this.soundRings = [];
+      this.afterimages = [];
+
+      this.score = 0;
+      this.comboCount = 0;
+      this.comboTimer = 0;
+      this.walkedDist = 0;
+      this.propsSmashed = 0;
+      this.dayMinutes = 9 * 60;
+      this.activeRival = null;
+      this.mergedOnce = false;
+      this.subwayOverlayTimer = 0;
+      this.gameOver = false;
+      this.running = true;
+
+      const reasons = t('reasons');
+      this.grudgeReasonIdx = Math.floor(Math.random() * reasons.length);
+      this.grudgeReason = reasons[this.grudgeReasonIdx];
+
+      const spots = [...this.world.spawnPoints].sort(() => Math.random() - 0.5);
+
+      // In 2P mode, ensure P1 and P2 start far apart (opposite ends of city!)
+      let p1Spot = spots[0];
+      let p2Spot = spots[1];
+      if (this.mode === '2p') {
+        const dtSpots = spots.filter((s) => s.zone === 'DOWNTOWN');
+        const utSpots = spots.filter((s) => s.zone === 'UPTOWN');
+        p1Spot = dtSpots[0] || spots[0];
+        p2Spot = utSpots[0] || spots[1];
+      }
+
+      this.player = new SG.Fighter({
+        id: 'player1',
+        name: t('p1Name'),
+        isPlayer: true,
+        playerNum: 1,
+        x: p1Spot.x,
+        y: p1Spot.y,
+        r: 20,
+        maxHp: 120,
+        speed: 255,
+        giColor: '#f8fafc',
+        trimColor: '#111111',
+        skinColor: '#f5cfa0',
+        hairColor: '#271c15',
+        bandanaColor: '#ef4444',
+        specialKind: 'fireball',
+        specialName: SG.currentLang === 'tr' ? 'KİN DALGASI!!' : 'PETTY HADOU-BLAST!!',
+        specialColor: '#f97316'
+      });
+
+      this.rivals = [];
+      this.player2 = null;
+
+      if (this.mode === '2p') {
+        this.player2 = new SG.Fighter({
+          id: 'player2',
+          name: t('p2Name'),
+          isPlayer: true,
+          playerNum: 2,
+          x: p2Spot.x,
+          y: p2Spot.y,
+          r: 20,
+          maxHp: 120,
+          speed: 255,
+          giColor: '#38bdf8',
+          trimColor: '#fde047',
+          skinColor: '#f3caa0',
+          hairColor: '#111827',
+          bandanaColor: '#fde047',
+          specialKind: 'cyclone',
+          specialName: SG.currentLang === 'tr' ? 'KİN KASIRGASI!!' : 'GRUDGE CYCLONE!!',
+          specialColor: '#38bdf8'
+        });
+        this.cam1.x = this.player.x; this.cam1.y = this.player.y;
+        this.cam2.x = this.player2.x; this.cam2.y = this.player2.y;
+        this.isSplitScreen = true;
+        this.player2.say(`${p2Spot.label}`, 3.0);
+      } else {
+        this.isSplitScreen = false;
+        const usedSpots = spots.filter((s) => s !== p1Spot);
+        for (let i = 0; i < SG.RIVAL_ROSTER.length; i++) {
+          const tpl = SG.RIVAL_ROSTER[i];
+          const sp = usedSpots[i % usedSpots.length];
+          const rival = new SG.Fighter({ ...tpl, isPlayer: false, x: sp.x, y: sp.y });
+          rival.homeX = sp.x; rival.homeY = sp.y;
+          rival.targetX = sp.x; rival.targetY = sp.y;
+          rival.spawnLabel = sp.label;
+          this.rivals.push(rival);
+        }
+      }
+
+      this.spawnTrafficAndPedestrians();
+      this.cam.x = this.player.x;
+      this.cam.y = this.player.y;
+      this.cam.zoom = 1;
+
+      document.getElementById('startModal').classList.add('hidden');
+      document.getElementById('endModal').classList.add('hidden');
+      document.getElementById('hud').classList.remove('hidden');
+      document.getElementById('touchControls').classList.toggle('active', this.mode === '1p');
+
+      this.player.say(
+        SG.currentLang === 'tr'
+          ? `NEREDESİN?! (${p1Spot.label})`
+          : `WHERE ARE THEY?! (${p1Spot.label})`,
+        3.2
+      );
+      this.showBanner(
+        SG.currentLang === 'tr' ? 'GÜN BAŞLADI!' : 'DAY STARTED!',
+        `${SG.currentLang === 'tr' ? 'SEBEP' : 'GRUDGE'}: "${this.grudgeReason}"`,
+        2.8
+      );
+      this.sfx.challenger();
+    }
+
+    spawnTrafficAndPedestrians() {
+      this.pedestrians = [];
+      const shirtColors = ['#38bdf8', '#f472b6', '#a78bfa', '#34d399', '#fbbf24', '#fb7185', '#e2e8f0'];
+      const panicLines = ['NOT AGAIN!', 'MY LATTE!', 'WHOA!!', 'CALL 911!', 'I\'M LATE!', 'HEY!!'];
+      for (let i = 0; i < 30; i++) {
+        let px, py, tries = 0;
+        do {
+          px = 180 + Math.random() * (SG.WORLD_W - 360);
+          py = 180 + Math.random() * (SG.WORLD_H - 360);
+          tries++;
+        } while (this.world.isPointInBuilding(px, py, 24) && tries < 40);
+        this.pedestrians.push({
+          x: px, y: py, r: 12,
+          angle: Math.random() * Math.PI * 2,
+          speed: 55 + Math.random() * 35,
+          color: shirtColors[i % shirtColors.length],
+          skin: i % 3 === 0 ? '#d9a06c' : '#f5cfa0',
+          hair: i % 2 === 0 ? '#1f2937' : '#78350f',
+          panicTimer: 0,
+          turnTimer: 1 + Math.random() * 3,
+          speech: '',
+          speechTimer: 0,
+          panicLine: panicLines[i % panicLines.length],
+          walkPhase: Math.random() * 6
+        });
+      }
+
+      this.cars = [];
+      const carColors = ['#ef4444', '#eab308', '#3b82f6', '#22c55e', '#f97316', '#f8fafc', '#06b6d4'];
+      for (let i = 0; i < 6; i++) {
+        const hr = this.world.hRoads[i % this.world.hRoads.length];
+        const dir = i % 2 === 0 ? 1 : -1;
+        const laneY = dir === 1 ? hr.y + hr.h * 0.72 : hr.y + hr.h * 0.28;
+        this.cars.push({
+          x: 200 + Math.random() * (SG.WORLD_W - 400),
+          y: laneY, axis: 'h', dir,
+          speed: 145 + Math.random() * 45, curSpeed: 150,
+          w: 68, h: 36,
+          color: i % 3 === 0 ? '#facc15' : carColors[i % carColors.length],
+          isTaxi: i % 3 === 0, honkCooldown: 0
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const vr = this.world.vRoads[i % this.world.vRoads.length];
+        const dir = i % 2 === 0 ? 1 : -1;
+        const laneX = dir === 1 ? vr.x + vr.w * 0.28 : vr.x + vr.w * 0.72;
+        this.cars.push({
+          x: laneX,
+          y: 200 + Math.random() * (SG.WORLD_H - 400), axis: 'v', dir,
+          speed: 140 + Math.random() * 40, curSpeed: 140,
+          w: 36, h: 68,
+          color: carColors[(i + 2) % carColors.length],
+          isTaxi: i === 2, honkCooldown: 0
+        });
+      }
+    }
+
+    getMoveInput(playerNum) {
+      let dx = 0, dy = 0;
+      if (this.mode === '1p') {
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) dy -= 1;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) dy += 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) dx -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) dx += 1;
+      } else if (playerNum === 1) {
+        if (this.keys['KeyW']) dy -= 1;
+        if (this.keys['KeyS']) dy += 1;
+        if (this.keys['KeyA']) dx -= 1;
+        if (this.keys['KeyD']) dx += 1;
+      } else {
+        if (this.keys['ArrowUp']) dy -= 1;
+        if (this.keys['ArrowDown']) dy += 1;
+        if (this.keys['ArrowLeft']) dx -= 1;
+        if (this.keys['ArrowRight']) dx += 1;
+      }
+      const len = Math.hypot(dx, dy);
+      if (len > 0) { dx /= len; dy /= len; }
+      return { dx, dy };
+    }
+
+    showBanner(title, sub = '', duration = 1.9) {
+      const el = document.getElementById('eventBanner');
+      const subEl = document.getElementById('eventSubBanner');
+      el.textContent = title;
+      el.classList.remove('hidden', 'banner-slam');
+      void el.offsetWidth;
+      el.classList.add('banner-slam');
+      if (sub) {
+        subEl.textContent = sub;
+        subEl.classList.remove('hidden');
+      } else {
+        subEl.classList.add('hidden');
+      }
+      this.bannerTimer = duration;
+    }
+
+    triggerPlayerShout(shouter) {
+      if (!shouter || shouter.ko || shouter.shoutCooldown > 0) return;
+      shouter.shoutCooldown = 2.6;
+      const lines = t('playerShoutLines');
+      shouter.say(lines[Math.floor(Math.random() * lines.length)], 2.0);
+      this.sfx.shout();
+      this.soundRings.push({ x: shouter.x, y: shouter.y, r: 20, maxR: 460, color: '#ffe135', alpha: 0.9 });
+      shouter.grudge = Math.min(100, shouter.grudge + 2.5);
+
+      if (this.mode === '2p') {
+        const other = shouter === this.player ? this.player2 : this.player;
+        if (other && !other.ko) {
+          const d = Math.hypot(other.x - shouter.x, other.y - shouter.y);
+          const dir = this.getCompassDirection(shouter.x, shouter.y, other.x, other.y);
+          this.soundRings.push({ x: other.x, y: other.y, r: 16, maxR: 260, color: '#38bdf8', alpha: 0.95 });
+          this.showSoundCue(`♪ ${other.name}: ${dir} (~${Math.round(d / 10)}m, ${this.world.getZone(other.x)})`);
+        }
+        return;
+      }
+
+      let nearest = null;
+      let nearestDist = Infinity;
+      for (const r of this.rivals) {
+        if (r.ko) continue;
+        const d = Math.hypot(r.x - shouter.x, r.y - shouter.y);
+        if (d < 850 && r.aiState !== AI_STATES.CALMED && r.aiState !== AI_STATES.COMBAT) {
+          r.aiState = AI_STATES.SEARCH;
+          r.investigateX = shouter.x;
+          r.investigateY = shouter.y;
+          r.aiTimer = 6.5;
+        }
+        if (d < nearestDist && r.aiState !== AI_STATES.CALMED) {
+          nearestDist = d;
+          nearest = r;
+        }
+      }
+
+      if (nearest) {
+        this.soundRings.push({ x: nearest.x, y: nearest.y, r: 16, maxR: 260, color: '#ef4444', alpha: 0.95 });
+        nearest.say(nearest.taunts[Math.floor(Math.random() * nearest.taunts.length)], 2.5);
+        const dirLabel = this.getCompassDirection(shouter.x, shouter.y, nearest.x, nearest.y);
+        this.showSoundCue(`♪ "${nearest.name}" ${dirLabel} (~${Math.round(nearestDist / 10)}m)`);
+      }
+    }
+
+    getCompassDirection(x1, y1, x2, y2) {
+      const ang = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+      if (ang >= -22.5 && ang < 22.5) return 'E';
+      if (ang >= 22.5 && ang < 67.5) return 'SE';
+      if (ang >= 67.5 && ang < 112.5) return 'S';
+      if (ang >= 112.5 && ang < 157.5) return 'SW';
+      if (ang >= 157.5 || ang < -157.5) return 'W';
+      if (ang >= -157.5 && ang < -112.5) return 'NW';
+      if (ang >= -112.5 && ang < -67.5) return 'N';
+      return 'NE';
+    }
+
+    showSoundCue(text) {
+      const pill = document.getElementById('soundCuePill');
+      pill.textContent = text;
+      pill.classList.remove('hidden');
+      clearTimeout(this._cueTimeout);
+      this._cueTimeout = setTimeout(() => pill.classList.add('hidden'), 3600);
+    }
+
+    /* =======================================================================
+       CHARACTER-SPECIFIC SPECIAL ATTACK ARCHETYPES
+       ======================================================================= */
+    executeCharacterSpecial(attacker) {
+      const kind = attacker.specialKind || 'fireball';
+      const dmg = Math.round(26 * attacker.getDamageMultiplier());
+      const targets = this.getOpponentsOf(attacker);
+
+      if (kind === 'shockwave') {
+        // Brutus's radial Asphalt Slam shockwave!
+        this.sfx.shockwave();
+        this.soundRings.push({ x: attacker.x, y: attacker.y, r: 16, maxR: 175, color: attacker.specialColor, alpha: 1, lineWidth: 9 });
+        this.spawnParticles(attacker.x, attacker.y, attacker.specialColor, 22, 240, 6);
+        this.shakeAllCams(14);
+        for (const tgt of targets) {
+          if (Math.hypot(tgt.x - attacker.x, tgt.y - attacker.y) < 155) {
+            this.applyMeleeHit(attacker, tgt, 'kick');
+          }
+        }
+        this.hitNearbyProps(attacker, 130);
+        return;
+      }
+
+      if (kind === 'cyclone' || kind === 'lariat') {
+        // Chun-Liquid's Tornado Spin & El Dorado's Diving Lariat lunge!
+        this.sfx.special();
+        attacker.vx += Math.cos(attacker.angle) * 520;
+        attacker.vy += Math.sin(attacker.angle) * 520;
+        attacker.invulnTimer = 0.25;
+        this.soundRings.push({ x: attacker.x, y: attacker.y, r: 16, maxR: 120, color: attacker.specialColor, alpha: 0.9, lineWidth: 6 });
+        this.shakeAllCams(9);
+        for (const tgt of targets) {
+          if (Math.hypot(tgt.x - attacker.x, tgt.y - attacker.y) < 115) {
+            this.applyMeleeHit(attacker, tgt, 'kick');
+          }
+        }
+        this.hitNearbyProps(attacker, 95);
+        return;
+      }
+
+      if (kind === 'triple_flame') {
+        // Kenji's 3-way Flame Spread!
+        this.sfx.special();
+        for (const spread of [-0.26, 0, 0.26]) {
+          const a = attacker.angle + spread;
+          this.projectiles.push({
+            owner: attacker,
+            x: attacker.x + Math.cos(a) * 26,
+            y: attacker.y + Math.sin(a) * 26,
+            vx: Math.cos(a) * 490,
+            vy: Math.sin(a) * 490,
+            r: 17, color: attacker.specialColor, life: 0.55, dmg: Math.round(dmg * 0.72)
+          });
+        }
+        this.shakeAllCams(9);
+        return;
+      }
+
+      // Default 'fireball' & 'psycho_beam'
+      this.sfx.special();
+      const speed = kind === 'psycho_beam' ? 680 : 540;
+      this.projectiles.push({
+        owner: attacker,
+        x: attacker.x + Math.cos(attacker.angle) * 28,
+        y: attacker.y + Math.sin(attacker.angle) * 28,
+        vx: Math.cos(attacker.angle) * speed,
+        vy: Math.sin(attacker.angle) * speed,
+        r: kind === 'psycho_beam' ? 24 : 21,
+        color: attacker.specialColor,
+        life: 0.68,
+        dmg
+      });
+      this.soundRings.push({ x: attacker.x, y: attacker.y, r: 15, maxR: 130, color: attacker.specialColor, alpha: 0.9 });
+      this.shakeAllCams(9);
+    }
+
+    getOpponentsOf(attacker) {
+      if (this.mode === '2p') {
+        const other = attacker === this.player ? this.player2 : this.player;
+        return other && !other.ko ? [other] : [];
+      }
+      return attacker.isPlayer ? this.rivals.filter((r) => !r.ko) : (this.player && !this.player.ko ? [this.player] : []);
+    }
+
+    shakeAllCams(amount) {
+      this.cam.shake = Math.max(this.cam.shake, amount);
+      this.cam1.shake = Math.max(this.cam1.shake, amount);
+      this.cam2.shake = Math.max(this.cam2.shake, amount);
+    }
+
+    spawnComicPopup(x, y, text, color = '#ffe135', scale = 1) {
+      this.popups.push({
+        x, y, vy: -52, text, color, scale, life: 0.85, maxLife: 0.85,
+        rot: (Math.random() - 0.5) * 0.35
+      });
+    }
+
+    spawnParticles(x, y, color, count = 10, speed = 160, size = 5) {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = speed * (0.35 + Math.random() * 0.8);
+        this.particles.push({
+          x, y,
+          vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+          size: size * (0.6 + Math.random() * 0.8),
+          color, life: 0.3 + Math.random() * 0.35, maxLife: 0.65
+        });
+      }
+    }
+
+    applyMeleeHit(attacker, target, type) {
+      if (target.ko || target.invulnTimer > 0) return;
+
+      let baseDmg = type === 'punch' ? (attacker.comboStep === 2 ? 15 : 10) : 18;
+      let kb = type === 'punch' ? (attacker.comboStep === 2 ? 260 : 140) : 340;
+      let dmg = Math.round(baseDmg * attacker.getDamageMultiplier());
+
+      const blocked = target.blocking && !target.ko && target.hitstun <= 0;
+      if (blocked && type !== 'kick') {
+        dmg = Math.max(2, Math.round(dmg * 0.25));
+        kb *= 0.4;
+        this.sfx.block();
+        this.spawnComicPopup(target.x, target.y - 26, 'BLOCK!', '#38bdf8', 0.95);
+        this.spawnParticles(target.x, target.y, '#93c5fd', 8, 130, 4);
+      } else {
+        if (blocked && type === 'kick') {
+          this.spawnComicPopup(target.x, target.y - 34, 'GUARD BREAK!', '#f97316', 1.15);
+          target.blocking = false;
+        }
+        if (type === 'kick' || attacker.comboStep === 2) {
+          this.sfx.hitHeavy();
+          this.shakeAllCams(10);
+          this.hitstop = 0.055;
+          const words = ['WHAM!!', 'KRAK!!', 'SMASH!!', 'BOOM!!'];
+          this.spawnComicPopup(target.x, target.y - 28, words[Math.floor(Math.random() * words.length)], '#ffe135', 1.25);
+        } else {
+          this.sfx.hitLight();
+          this.shakeAllCams(5);
+          this.hitstop = 0.032;
+          const words = ['POW!', 'BAP!', 'ZAP!', 'THWACK!'];
+          this.spawnComicPopup(target.x, target.y - 26, words[Math.floor(Math.random() * words.length)], '#fb923c', 1.0);
+        }
+        this.spawnParticles(target.x, target.y, '#fde047', 12, 210, 5);
+        target.hitstun = type === 'kick' ? 0.34 : 0.20;
+      }
+
+      target.hp = Math.max(0, target.hp - dmg);
+      target.flashTimer = 0.14;
+      const ang = Math.atan2(target.y - attacker.y, target.x - attacker.x);
+      target.vx += Math.cos(ang) * kb;
+      target.vy += Math.sin(ang) * kb;
+
+      this.panicNearbyPedestrians(target.x, target.y, 260);
+
+      if (attacker.isPlayer) {
+        attacker.grudge = Math.min(100, attacker.grudge + (type === 'kick' ? 3.5 : 2.0));
+        if (attacker.playerNum === 1) {
+          this.comboCount++;
+          this.comboTimer = 2.0;
+          this.score += dmg * 10 * Math.min(5, this.comboCount);
+        }
+        if (!target.isPlayer) {
+          if (target.aiState !== AI_STATES.CALMED) {
+            target.aiState = AI_STATES.COMBAT;
+            target.grudge = Math.min(100, target.grudge + 12);
+          } else {
+            const lines = t('calmedRivalLines');
+            target.say(lines[Math.floor(Math.random() * lines.length)], 2.4);
+          }
+        }
+      }
+
+      if (target.hp <= 0) this.handleKO(attacker, target);
+    }
+
+    handleKO(attacker, target) {
+      target.ko = true;
+      target.koTimer = 0;
+      this.hitstop = 0.14;
+      this.shakeAllCams(16);
+      this.screenFlash = 0.35;
+
+      if (this.mode === '2p') {
+        this.sfx.koFanfare();
+        this.spawnParticles(target.x, target.y, '#ef4444', 24, 260, 6);
+        this.endDay(target === this.player2 ? 'p1_win' : 'p2_win');
+        return;
+      }
+
+      if (target.isPlayer) {
+        this.sfx.hitHeavy();
+        this.endDay('defeat');
+      } else {
+        this.sfx.koFanfare();
+        this.score += 1500 + Math.round(this.player.grudge * 15);
+        this.player.grudge = Math.min(100, this.player.grudge + 26);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + 20);
+        this.showBanner(t('koBanner'), `${target.name} — ${t('koSub')}`, 2.1);
+        this.spawnParticles(target.x, target.y, '#ef4444', 24, 260, 6);
+
+        const remaining = this.rivals.filter((r) => !r.ko && r.aiState !== AI_STATES.CALMED);
+        if (remaining.length === 0) {
+          setTimeout(() => { if (!this.gameOver) this.endDay('victory'); }, 1300);
+        }
+      }
+    }
+
+    hitNearbyProps(attacker, range) {
+      const hx = attacker.x + Math.cos(attacker.angle) * (range * 0.72);
+      const hy = attacker.y + Math.sin(attacker.angle) * (range * 0.72);
+      for (const p of this.world.props) {
+        if (p.broken) continue;
+        if (Math.hypot(p.x - hx, p.y - hy) < p.r + 32) {
+          p.hp -= 20;
+          p.shake = 0.2;
+          if (p.type === 'parked_car') {
+            this.sfx.carHorn();
+            p.alarmTimer = 5.0;
+            this.soundRings.push({ x: p.x, y: p.y, r: 20, maxR: 420, color: '#ef4444', alpha: 0.9 });
+            this.spawnComicPopup(p.x, p.y - 24, 'WEE-WOO!', '#ef4444', 1.0);
+            this.spawnParticles(p.x, p.y, p.color, 10, 160, 4);
+            for (const r of this.rivals) {
+              if (!r.ko && r.aiState === AI_STATES.WANDER && Math.hypot(r.x - p.x, r.y - p.y) < 620) {
+                r.aiState = AI_STATES.SEARCH;
+                r.investigateX = p.x; r.investigateY = p.y;
+                r.aiTimer = 6.0;
+                r.say('?!', 1.6);
+              }
+            }
+          }
+          if (p.hp <= 0) {
+            p.broken = true;
+            this.propsSmashed++;
+            this.score += 150;
+            if (p.type === 'hydrant') {
+              p.sprayTimer = 14.0;
+              this.sfx.hydrant();
+              this.spawnComicPopup(p.x, p.y - 24, 'SPLASH!!', '#38bdf8', 1.1);
+              this.spawnParticles(p.x, p.y, '#38bdf8', 18, 220, 5);
+            } else if (p.type === 'trash') {
+              this.sfx.trashCan();
+              this.spawnComicPopup(p.x, p.y - 24, 'CLANG!', '#cbd5e1', 1.0);
+              this.spawnParticles(p.x, p.y, '#94a3b8', 14, 190, 5);
+              if (Math.random() < 0.65) {
+                this.pickups.push({
+                  x: p.x, y: p.y,
+                  kind: Math.random() < 0.6 ? 'espresso' : 'taco',
+                  bob: 0, life: 25
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    panicNearbyPedestrians(x, y, radius) {
+      for (const ped of this.pedestrians) {
+        if (Math.hypot(ped.x - x, ped.y - y) < radius) {
+          ped.panicTimer = 3.5;
+          ped.angle = Math.atan2(ped.y - y, ped.x - x) + (Math.random() - 0.5) * 0.6;
+          if (ped.speechTimer <= 0 && Math.random() < 0.45) {
+            ped.speech = ped.panicLine;
+            ped.speechTimer = 1.8;
+          }
+        }
+      }
+    }
+
+    endDay(outcome) {
+      this.gameOver = true;
+      this.running = false;
+      const modal = document.getElementById('endModal');
+      const badge = document.getElementById('endBadge');
+      const title = document.getElementById('endTitle');
+      const quote = document.getElementById('endQuote');
+
+      const kos = this.mode === '2p' ? (outcome === 'forgot' ? 0 : 1) : this.rivals.filter((r) => r.ko).length;
+      const total = this.mode === '2p' ? 1 : this.rivals.length;
+      document.getElementById('statScore').textContent = this.score.toLocaleString();
+      document.getElementById('statKos').textContent = `${kos} / ${total}`;
+      document.getElementById('statDist').textContent = `${Math.round(this.walkedDist / 10)}m`;
+      document.getElementById('statProps').textContent = this.propsSmashed;
+      document.getElementById('endForgottenReason').textContent =
+        `${SG.currentLang === 'tr' ? 'Günün Sebebi' : 'Today\'s Grudge'}: "${this.grudgeReason}"`;
+
+      if (outcome === 'forgot') {
+        this.sfx.forgotTrombone();
+        badge.style.background = '#64748b';
+        badge.textContent = t('forgotBadge');
+        title.style.color = '#475569';
+        title.textContent = t('forgotTitle');
+        const qs = t('forgotQuotes');
+        quote.textContent = qs[Math.floor(Math.random() * qs.length)];
+      } else if (outcome === 'defeat') {
+        badge.style.background = '#dc2626';
+        badge.textContent = t('defeatBadge');
+        title.style.color = '#ef4444';
+        title.textContent = t('defeatTitle');
+        quote.textContent = t('defeatQuote');
+      } else if (outcome === 'p1_win' || outcome === 'p2_win') {
+        badge.style.background = outcome === 'p1_win' ? '#f59e0b' : '#0284c7';
+        badge.textContent = 'LOCAL VERSUS K.O.!';
+        title.style.color = outcome === 'p1_win' ? '#f97316' : '#38bdf8';
+        title.textContent = outcome === 'p1_win' ? t('p1WinTitle') : t('p2WinTitle');
+        quote.textContent = t('vsWinQuote');
+      } else {
+        badge.style.background = '#16a34a';
+        badge.textContent = t('victoryBadge');
+        title.style.color = '#f59e0b';
+        title.textContent = t('victoryTitle');
+        quote.textContent = t('victoryQuote');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    /* =======================================================================
+       SIMULATION UPDATE LOOP
+       ======================================================================= */
+    update(dt) {
+      if (this.hitstop > 0) { this.hitstop -= dt; return; }
+      if (this.screenFlash > 0) this.screenFlash = Math.max(0, this.screenFlash - dt);
+      if (this.subwayOverlayTimer > 0) this.subwayOverlayTimer = Math.max(0, this.subwayOverlayTimer - dt);
+      if (this.bannerTimer > 0) {
+        this.bannerTimer -= dt;
+        if (this.bannerTimer <= 0) {
+          document.getElementById('eventBanner').classList.add('hidden');
+          document.getElementById('eventSubBanner').classList.add('hidden');
+        }
+      }
+
+      this.updateTrafficAndPedestrians(dt);
+
+      if (!this.running || this.gameOver || !this.player) {
+        this.cam.x = 1480 + Math.sin(performance.now() * 0.00025) * 320;
+        this.cam.y = 1040 + Math.cos(performance.now() * 0.0002) * 220;
+        return;
+      }
+
+      this.dayMinutes += dt * 1.8;
+      this.world.update(dt, [this.player, this.player2, ...this.rivals]);
+
+      this.updatePlayerFighter(this.player, dt);
+      if (this.mode === '2p' && this.player2) {
+        this.updatePlayerFighter(this.player2, dt);
+        this.update2PCameras(dt);
+      } else {
+        this.updateRivals(dt);
+        this.update1PCamera(dt);
+      }
+
+      this.updateWorldEntities(dt);
+
+      // Ambient city siren & rival rumor cues (1P mode)
+      if (this.mode === '1p') {
+        this.ambientSirenTimer -= dt;
+        if (this.ambientSirenTimer <= 0) {
+          this.ambientSirenTimer = 9 + Math.random() * 8;
+          this.sfx.distantSiren(0.035);
+          const alive = this.rivals.filter((r) => !r.ko && r.aiState !== AI_STATES.CALMED);
+          if (alive.length > 0 && !this.activeRival) {
+            const pick = alive[Math.floor(Math.random() * alive.length)];
+            const dir = this.getCompassDirection(this.player.x, this.player.y, pick.x, pick.y);
+            this.soundRings.push({ x: pick.x, y: pick.y, r: 12, maxR: 200, color: '#fb923c', alpha: 0.75 });
+            this.showSoundCue(`♪ Rumor: ${pick.name} spotted ${dir} (${this.world.getZone(pick.x)})`);
+          }
+        }
+      }
+
+      this.updateHUD();
+    }
+
+    update1PCamera(dt) {
+      const inCombat = !!(this.activeRival && this.activeRival.aiState === AI_STATES.COMBAT && !this.activeRival.ko);
+      const targetZoom = inCombat ? 1.07 : 0.96;
+      this.cam.zoom += (targetZoom - this.cam.zoom) * Math.min(1, dt * 3.5);
+      const focusX = inCombat ? (this.player.x * 0.68 + this.activeRival.x * 0.32) : this.player.x;
+      const focusY = inCombat ? (this.player.y * 0.68 + this.activeRival.y * 0.32) : this.player.y;
+      this.cam.x += (focusX - this.cam.x) * Math.min(1, dt * 7);
+      this.cam.y += (focusY - this.cam.y) * Math.min(1, dt * 7);
+      this.cam.shake = Math.max(0, this.cam.shake - dt * 36);
+    }
+
+    update2PCameras(dt) {
+      const dist = Math.hypot(this.player.x - this.player2.x, this.player.y - this.player2.y);
+      const mergeThreshold = Math.min(480, this.viewW * 0.48);
+
+      if (dist <= mergeThreshold) {
+        if (this.isSplitScreen) {
+          this.isSplitScreen = false;
+          if (!this.mergedOnce) {
+            this.mergedOnce = true;
+            this.sfx.challenger();
+            this.showBanner(t('mergedBanner'), t('mergedSub'), 2.0);
+          }
+        }
+        const midX = (this.player.x + this.player2.x) / 2;
+        const midY = (this.player.y + this.player2.y) / 2;
+        this.cam.x += (midX - this.cam.x) * Math.min(1, dt * 8);
+        this.cam.y += (midY - this.cam.y) * Math.min(1, dt * 8);
+        const targetZoom = Math.max(0.86, Math.min(1.08, 1.12 - dist / 1400));
+        this.cam.zoom += (targetZoom - this.cam.zoom) * Math.min(1, dt * 4);
+      } else {
+        this.isSplitScreen = true;
+        this.cam1.x += (this.player.x - this.cam1.x) * Math.min(1, dt * 8);
+        this.cam1.y += (this.player.y - this.cam1.y) * Math.min(1, dt * 8);
+        this.cam2.x += (this.player2.x - this.cam2.x) * Math.min(1, dt * 8);
+        this.cam2.y += (this.player2.y - this.cam2.y) * Math.min(1, dt * 8);
+      }
+      this.cam.shake = Math.max(0, this.cam.shake - dt * 36);
+      this.cam1.shake = Math.max(0, this.cam1.shake - dt * 36);
+      this.cam2.shake = Math.max(0, this.cam2.shake - dt * 36);
+    }
+
+    updatePlayerFighter(p, dt) {
+      p.attackCooldown = Math.max(0, p.attackCooldown - dt);
+      p.specialCooldown = Math.max(0, p.specialCooldown - dt);
+      p.dashCooldown = Math.max(0, p.dashCooldown - dt);
+      p.comboResetTimer = Math.max(0, p.comboResetTimer - dt);
+      p.hitstun = Math.max(0, p.hitstun - dt);
+      p.flashTimer = Math.max(0, p.flashTimer - dt);
+      p.invulnTimer = Math.max(0, p.invulnTimer - dt);
+      p.speechTimer = Math.max(0, p.speechTimer - dt);
+      p.shoutCooldown = Math.max(0, p.shoutCooldown - dt);
+      p.subwayCooldown = Math.max(0, p.subwayCooldown - dt);
+
+      if (p.playerNum === 1 && this.comboTimer > 0) {
+        this.comboTimer -= dt;
+        if (this.comboTimer <= 0) this.comboCount = 0;
+      }
+
+      const blockPressed = this.mode === '1p'
+        ? !!(this.keys['KeyL'] || this.keys['ShiftLeft'] || this.keys['ShiftRight'])
+        : (p.playerNum === 1 ? !!this.keys['KeyH'] : !!this.keys['KeyL']);
+      p.blocking = blockPressed && p.attackTimer <= 0 && p.dashTimer <= 0;
+
+      const prevX = p.x, prevY = p.y;
+      if (p.dashTimer > 0) {
+        p.dashTimer -= dt;
+        p.x += p.dashDirX * 640 * dt;
+        p.y += p.dashDirY * 640 * dt;
+        this.afterimages.push({ x: p.x, y: p.y, angle: p.angle, color: p.playerNum === 2 ? '#38bdf8' : '#fb923c', alpha: 0.45 });
+      } else if (p.hitstun <= 0) {
+        const { dx, dy } = this.getMoveInput(p.playerNum);
+        const moveScale = p.blocking ? 0.35 : (p.attackTimer > 0 ? 0.32 : 1.0);
+        p.x += dx * p.speed * moveScale * dt;
+        p.y += dy * p.speed * moveScale * dt;
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+          p.angle = Math.atan2(dy, dx);
+          p.walkCycle += dt * 13 * moveScale;
+        }
+      }
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.pow(0.001, dt);
+      p.vy *= Math.pow(0.001, dt);
+
+      this.world.resolveCircleCollisions(p);
+      this.walkedDist += Math.hypot(p.x - prevX, p.y - prevY);
+
+      // Subway Express Fast-Travel (+5% Commuter Rage!)
+      if (p.subwayCooldown <= 0) {
+        for (const sub of this.world.subways) {
+          if (p.x > sub.x + 15 && p.x < sub.x + sub.w - 15 && p.y > sub.y + 15 && p.y < sub.y + sub.h - 15) {
+            p.x = sub.exitX;
+            p.y = sub.exitY;
+            p.grudge = Math.min(100, p.grudge + 5);
+            p.subwayCooldown = 3.2;
+            if (p.playerNum === 1) { this.cam.x = p.x; this.cam.y = p.y; this.cam1.x = p.x; this.cam1.y = p.y; }
+            else { this.cam2.x = p.x; this.cam2.y = p.y; }
+            this.subwayOverlayTimer = 0.65;
+            this.sfx.subway();
+            this.showBanner(t('subwayBanner'), t('subwaySub'), 1.6);
+            break;
+          }
+        }
+      }
+
+      // Active Melee Hitbox Frame
+      if (p.attackTimer > 0) {
+        p.attackTimer -= dt;
+        if (!p.attackHitApplied && p.attackTimer <= p.attackDuration * 0.58) {
+          p.attackHitApplied = true;
+          if (p.attackType === 'punch' || p.attackType === 'kick') {
+            const opponents = this.getOpponentsOf(p);
+            let closest = null, bestD = 92;
+            for (const o of opponents) {
+              const d = Math.hypot(o.x - p.x, o.y - p.y);
+              if (d < bestD) { bestD = d; closest = o; }
+            }
+            if (closest) p.angle = Math.atan2(closest.y - p.y, closest.x - p.x);
+
+            const range = p.attackType === 'kick' ? 68 : 56;
+            for (const o of opponents) {
+              const dx = o.x - p.x, dy = o.y - p.y;
+              if (Math.hypot(dx, dy) <= range + o.r) {
+                let diff = Math.abs(Math.atan2(dy, dx) - p.angle);
+                if (diff > Math.PI) diff = Math.PI * 2 - diff;
+                if (diff < 1.15) this.applyMeleeHit(p, o, p.attackType);
+              }
+            }
+            this.hitNearbyProps(p, range);
+          }
+        }
+      }
+
+      // Signature Grudge / Calming Down Meter
+      const inCloseFight = this.mode === '2p'
+        ? (this.player2 && Math.hypot(this.player.x - this.player2.x, this.player.y - this.player2.y) < 340)
+        : !!(this.activeRival && !this.activeRival.ko && this.activeRival.aiState === AI_STATES.COMBAT);
+      const drainRate = inCloseFight ? 0.22 : 1.55;
+      p.grudge = Math.max(0, p.grudge - drainRate * dt);
+
+      if (p.grudge >= 70 && Math.random() < dt * 6) {
+        this.particles.push({
+          x: p.x + (Math.random() - 0.5) * 16, y: p.y - 18,
+          vx: (Math.random() - 0.5) * 18, vy: -35 - Math.random() * 25,
+          size: 4, color: p.playerNum === 2 ? '#38bdf8' : '#ef4444',
+          life: 0.45, maxLife: 0.45
+        });
+      }
+
+      if (p.grudge < 35 && p.grudge > 0) {
+        p.lowGrudgeMutterTimer -= dt;
+        if (p.lowGrudgeMutterTimer <= 0 && p.speechTimer <= 0) {
+          p.lowGrudgeMutterTimer = 4.2;
+          const lines = t('playerLowGrudgeLines');
+          p.say(lines[Math.floor(Math.random() * lines.length)], 2.4);
+        }
+      }
+
+      if (p.grudge <= 0 && !this.gameOver) {
+        p.say(SG.currentLang === 'tr' ? 'Niye sinirlenmiştim ki? 🤷' : 'Wait... why was I mad? 🤷', 4.0);
+        for (const r of this.rivals) { if (!r.ko) r.aiState = AI_STATES.CALMED; }
+        this.endDay('forgot');
+      }
+    }
+
+    /* =======================================================================
+       ENEMY AI FINITE STATE MACHINE (1P MODE)
+       ======================================================================= */
+    updateRivals(dt) {
+      const p = this.player;
+      let closestEngaged = null;
+      let closestDist = Infinity;
+
+      for (const r of this.rivals) {
+        r.speechTimer = Math.max(0, r.speechTimer - dt);
+        r.flashTimer = Math.max(0, r.flashTimer - dt);
+        r.hitstun = Math.max(0, r.hitstun - dt);
+        r.invulnTimer = Math.max(0, r.invulnTimer - dt);
+        r.attackCooldown = Math.max(0, r.attackCooldown - dt);
+        r.specialCooldown = Math.max(0, r.specialCooldown - dt);
+        r.dashCooldown = Math.max(0, r.dashCooldown - dt);
+
+        if (r.ko) {
+          r.koTimer += dt;
+          r.x += r.vx * dt; r.y += r.vy * dt;
+          r.vx *= Math.pow(0.002, dt); r.vy *= Math.pow(0.002, dt);
+          this.world.resolveCircleCollisions(r);
+          continue;
+        }
+
+        const distToPlayer = Math.hypot(p.x - r.x, p.y - r.y);
+
+        if (r.aiState !== AI_STATES.COMBAT && r.aiState !== AI_STATES.CALMED) {
+          r.grudge = Math.max(0, r.grudge - r.aiCalmRate * dt);
+          if (r.grudge <= 0) {
+            r.aiState = AI_STATES.CALMED;
+            const lines = t('calmedRivalLines');
+            r.say(lines[Math.floor(Math.random() * lines.length)], 2.8);
+          }
+        }
+
+        if (distToPlayer < 420 && distToPlayer < closestDist) {
+          closestDist = distToPlayer;
+          closestEngaged = r;
+        }
+
+        if (r.attackTimer > 0) {
+          r.attackTimer -= dt;
+          if (!r.attackHitApplied && r.attackTimer <= r.attackDuration * 0.52) {
+            r.attackHitApplied = true;
+            if (r.attackType === 'punch' || r.attackType === 'kick') {
+              const range = r.attackType === 'kick' ? 62 : 52;
+              if (distToPlayer <= range + p.r) this.applyMeleeHit(r, p, r.attackType);
+            }
+          }
+        }
+
+        if (r.hitstun <= 0) {
+          if (r.dashTimer > 0) {
+            r.dashTimer -= dt;
+            r.x += r.dashDirX * 520 * dt;
+            r.y += r.dashDirY * 520 * dt;
+          } else {
+            switch (r.aiState) {
+              case AI_STATES.WANDER: this.aiStepWander(r, distToPlayer, dt); break;
+              case AI_STATES.SEARCH: this.aiStepSearch(r, distToPlayer, dt); break;
+              case AI_STATES.COMBAT: this.aiStepCombat(r, distToPlayer, dt); break;
+              case AI_STATES.CALMED: this.aiStepCalmed(r, distToPlayer, dt); break;
+            }
+          }
+        }
+
+        r.x += r.vx * dt; r.y += r.vy * dt;
+        r.vx *= Math.pow(0.001, dt); r.vy *= Math.pow(0.001, dt);
+        this.world.resolveCircleCollisions(r);
+      }
+
+      if (closestEngaged && closestEngaged !== this.activeRival && closestEngaged.aiState === AI_STATES.COMBAT) {
+        this.showBanner(t('challengerBanner'), `${closestEngaged.name} — ${t('fightSub')}`, 1.7);
+        this.sfx.challenger();
+      }
+      this.activeRival = closestEngaged;
+    }
+
+    aiStepWander(r, distToPlayer, dt) {
+      r.blocking = false;
+      r.aiTimer -= dt;
+      if (distToPlayer < 210) {
+        r.aiState = AI_STATES.COMBAT;
+        r.say(r.taunts[Math.floor(Math.random() * r.taunts.length)], 2.2);
+        return;
+      }
+      if (distToPlayer < 350) {
+        r.aiState = AI_STATES.SEARCH;
+        r.investigateX = this.player.x; r.investigateY = this.player.y;
+        r.aiTimer = 4.5;
+        r.say('WAIT... IS THAT HIM?!', 1.8);
+        return;
+      }
+      if (Math.hypot(r.targetX - r.x, r.targetY - r.y) < 24 || r.aiTimer <= 0) {
+        r.aiTimer = 3.0 + Math.random() * 3.5;
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 110 + Math.random() * 230;
+        const nx = Math.max(90, Math.min(SG.WORLD_W - 90, r.homeX + Math.cos(ang) * rad));
+        const ny = Math.max(90, Math.min(SG.WORLD_H - 90, r.homeY + Math.sin(ang) * rad));
+        if (!this.world.isPointInBuilding(nx, ny, 28)) { r.targetX = nx; r.targetY = ny; }
+      } else {
+        const ang = Math.atan2(r.targetY - r.y, r.targetX - r.x);
+        r.angle = ang;
+        r.x += Math.cos(ang) * (r.speed * 0.48) * dt;
+        r.y += Math.sin(ang) * (r.speed * 0.48) * dt;
+        r.walkCycle += dt * 7;
+      }
+    }
+
+    aiStepSearch(r, distToPlayer, dt) {
+      r.blocking = false;
+      r.aiTimer -= dt;
+      if (distToPlayer < 225) {
+        r.aiState = AI_STATES.COMBAT;
+        r.say(r.taunts[Math.floor(Math.random() * r.taunts.length)], 2.2);
+        return;
+      }
+      const dx = r.investigateX - r.x, dy = r.investigateY - r.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 28) {
+        const ang = Math.atan2(dy, dx);
+        r.angle = ang;
+        r.x += Math.cos(ang) * (r.speed * 0.78) * dt;
+        r.y += Math.sin(ang) * (r.speed * 0.78) * dt;
+        r.walkCycle += dt * 10;
+      }
+      if (r.aiTimer <= 0 || d <= 28) {
+        r.aiState = AI_STATES.WANDER;
+        r.say('Must\'ve been the wind...', 1.7);
+      }
+    }
+
+    aiStepCombat(r, distToPlayer, dt) {
+      const p = this.player;
+      const angToPlayer = Math.atan2(p.y - r.y, p.x - r.x);
+      r.angle = angToPlayer;
+      if (distToPlayer > 520) {
+        r.aiState = AI_STATES.SEARCH;
+        r.investigateX = p.x; r.investigateY = p.y;
+        r.aiTimer = 5.0;
+        r.say('HEY! COME BACK HERE!', 1.8);
+        return;
+      }
+      r.aiAttackDelay -= dt;
+      r.aiTimer -= dt;
+      if (r.aiTimer <= 0) {
+        r.aiTimer = 0.8 + Math.random() * 1.1;
+        r.aiStrafeDir = Math.random() < 0.5 ? 1 : -1;
+        r.blocking = p.attackTimer > 0 && distToPlayer < 95 && Math.random() < 0.42;
+      }
+      if (r.attackTimer <= 0) {
+        if (distToPlayer > 72) {
+          const weave = angToPlayer + r.aiStrafeDir * 0.35;
+          const spd = r.blocking ? r.speed * 0.4 : r.speed * 0.92;
+          r.x += Math.cos(weave) * spd * dt;
+          r.y += Math.sin(weave) * spd * dt;
+          r.walkCycle += dt * 11;
+        } else {
+          const perp = angToPlayer + r.aiStrafeDir * (Math.PI / 2);
+          r.x += Math.cos(perp) * (r.speed * 0.36) * dt;
+          r.y += Math.sin(perp) * (r.speed * 0.36) * dt;
+          r.walkCycle += dt * 6;
+        }
+      }
+      if (r.aiAttackDelay <= 0) {
+        if (distToPlayer < 72) {
+          r.blocking = false;
+          const roll = Math.random();
+          if (roll < 0.58) r.startAttack('punch', this);
+          else if (roll < 0.88) r.startAttack('kick', this);
+          else r.startAttack('special', this);
+          r.aiAttackDelay = 0.52 + Math.random() * 0.55;
+        } else if (distToPlayer > 140 && distToPlayer < 290 && r.specialCooldown <= 0 && Math.random() < 0.35) {
+          r.blocking = false;
+          r.startAttack('special', this);
+          r.aiAttackDelay = 1.1;
+        } else if (distToPlayer > 120 && r.dashCooldown <= 0 && Math.random() < 0.25) {
+          r.startDash(Math.cos(angToPlayer), Math.sin(angToPlayer), this);
+          r.aiAttackDelay = 0.45;
+        } else {
+          r.aiAttackDelay = 0.35;
+        }
+      }
+    }
+
+    aiStepCalmed(r, distToPlayer, dt) {
+      r.blocking = false;
+      if (distToPlayer < 95 && r.speechTimer <= 0) {
+        const lines = t('calmedRivalLines');
+        r.say(lines[Math.floor(Math.random() * lines.length)], 2.8);
+      }
+      r.aiTimer -= dt;
+      if (Math.hypot(r.targetX - r.x, r.targetY - r.y) < 20 || r.aiTimer <= 0) {
+        r.aiTimer = 4 + Math.random() * 4;
+        const ang = Math.random() * Math.PI * 2;
+        const nx = Math.max(100, Math.min(SG.WORLD_W - 100, r.x + Math.cos(ang) * 140));
+        const ny = Math.max(100, Math.min(SG.WORLD_H - 100, r.y + Math.sin(ang) * 140));
+        if (!this.world.isPointInBuilding(nx, ny, 28)) { r.targetX = nx; r.targetY = ny; }
+      } else {
+        const ang = Math.atan2(r.targetY - r.y, r.targetX - r.x);
+        r.angle = ang;
+        r.x += Math.cos(ang) * 52 * dt;
+        r.y += Math.sin(ang) * 52 * dt;
+        r.walkCycle += dt * 4;
+      }
+    }
+
+    updateTrafficAndPedestrians(dt) {
+      for (const ped of this.pedestrians) {
+        ped.speechTimer = Math.max(0, ped.speechTimer - dt);
+        if (ped.panicTimer > 0) {
+          ped.panicTimer -= dt;
+          ped.x += Math.cos(ped.angle) * (ped.speed * 2.4) * dt;
+          ped.y += Math.sin(ped.angle) * (ped.speed * 2.4) * dt;
+          ped.walkPhase += dt * 16;
+        } else {
+          ped.turnTimer -= dt;
+          if (ped.turnTimer <= 0) {
+            ped.turnTimer = 2.0 + Math.random() * 3.5;
+            ped.angle += (Math.random() - 0.5) * 1.8;
+          }
+          ped.x += Math.cos(ped.angle) * ped.speed * dt;
+          ped.y += Math.sin(ped.angle) * ped.speed * dt;
+          ped.walkPhase += dt * 7;
+        }
+        if (this.world.isPointInBuilding(ped.x, ped.y, ped.r + 4) || ped.x < 50 || ped.x > SG.WORLD_W - 50 || ped.y < 50 || ped.y > SG.WORLD_H - 50) {
+          ped.angle += Math.PI * 0.75;
+          this.world.resolveCircleCollisions(ped);
+        }
+      }
+
+      const activeFighters = [this.player, this.player2, ...this.rivals].filter((f) => f && !f.ko);
+      for (const car of this.cars) {
+        car.honkCooldown = Math.max(0, car.honkCooldown - dt);
+        let shouldStop = false;
+        const redForCar = (car.axis === 'v' && (this.world.trafficPhase === 2 || this.world.trafficPhase === 3))
+                       || (car.axis === 'h' && (this.world.trafficPhase === 0 || this.world.trafficPhase === 1));
+        if (redForCar) {
+          for (const inter of this.world.intersections) {
+            if (car.axis === 'h') {
+              const distFront = car.dir === 1 ? (inter.x - (car.x + 34)) : ((car.x - 34) - (inter.x + inter.w));
+              if (distFront > 0 && distFront < 42 && Math.abs(car.y - inter.cy) < inter.h * 0.6) { shouldStop = true; break; }
+            } else {
+              const distFront = car.dir === 1 ? (inter.y - (car.y + 34)) : ((car.y - 34) - (inter.y + inter.h));
+              if (distFront > 0 && distFront < 42 && Math.abs(car.x - inter.cx) < inter.w * 0.6) { shouldStop = true; break; }
+            }
+          }
+        }
+        if (!shouldStop) {
+          for (const f of activeFighters) {
+            const fx = car.axis === 'h' ? car.x + car.dir * 52 : car.x;
+            const fy = car.axis === 'v' ? car.y + car.dir * 52 : car.y;
+            if (Math.hypot(f.x - fx, f.y - fy) < 42) {
+              shouldStop = true;
+              if (car.honkCooldown <= 0 && this.player && Math.hypot(car.x - this.player.x, car.y - this.player.y) < 480) {
+                car.honkCooldown = 2.4;
+                this.sfx.carHorn();
+                this.spawnComicPopup(car.x, car.y - 24, 'HONK!', '#ffe135', 0.85);
+              }
+              break;
+            }
+          }
+        }
+        const targetSpd = shouldStop ? 0 : car.speed;
+        car.curSpeed += (targetSpd - car.curSpeed) * Math.min(1, dt * 6);
+        if (car.axis === 'h') {
+          car.x += car.dir * car.curSpeed * dt;
+          if (car.x > SG.WORLD_W + 90) car.x = -90;
+          if (car.x < -90) car.x = SG.WORLD_W + 90;
+        } else {
+          car.y += car.dir * car.curSpeed * dt;
+          if (car.y > SG.WORLD_H + 90) car.y = -90;
+          if (car.y < -90) car.y = SG.WORLD_H + 90;
+        }
+      }
+    }
+
+    updateWorldEntities(dt) {
+      for (const p of this.world.props) {
+        if (p.shake > 0) p.shake = Math.max(0, p.shake - dt);
+        if (p.alarmTimer > 0) p.alarmTimer = Math.max(0, p.alarmTimer - dt);
+        if (p.type === 'hydrant' && p.broken && p.sprayTimer > 0) {
+          p.sprayTimer -= dt;
+          if (Math.random() < dt * 28) {
+            this.particles.push({
+              x: p.x + (Math.random() - 0.5) * 6, y: p.y,
+              vx: (Math.random() - 0.5) * 120, vy: -90 - Math.random() * 90,
+              size: 4 + Math.random() * 3,
+              color: Math.random() < 0.4 ? '#e0f2fe' : '#38bdf8',
+              life: 0.45, maxLife: 0.45
+            });
+          }
+        }
+      }
+
+      for (let i = this.projectiles.length - 1; i >= 0; i--) {
+        const pr = this.projectiles[i];
+        pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
+        this.particles.push({
+          x: pr.x, y: pr.y,
+          vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40,
+          size: 6, color: pr.color, life: 0.2, maxLife: 0.2
+        });
+        let hit = !!this.world.isPointInBuilding(pr.x, pr.y, 6);
+        const targets = this.getOpponentsOf(pr.owner);
+        for (const tgt of targets) {
+          if (Math.hypot(tgt.x - pr.x, tgt.y - pr.y) < pr.r + tgt.r) {
+            this.applyMeleeHit(pr.owner, tgt, 'kick');
+            hit = true; break;
+          }
+        }
+        if (hit || pr.life <= 0) {
+          this.spawnParticles(pr.x, pr.y, pr.color, 14, 220, 5);
+          this.projectiles.splice(i, 1);
+        }
+      }
+
+      const collectors = [this.player, this.player2].filter((f) => f && !f.ko);
+      for (let i = this.pickups.length - 1; i >= 0; i--) {
+        const pk = this.pickups[i];
+        pk.bob += dt * 5; pk.life -= dt;
+        if (pk.life <= 0) { this.pickups.splice(i, 1); continue; }
+        for (const col of collectors) {
+          if (Math.hypot(col.x - pk.x, col.y - pk.y) < col.r + 18) {
+            this.sfx.pickup();
+            if (pk.kind === 'espresso') {
+              col.grudge = Math.min(100, col.grudge + 22);
+              col.hp = Math.min(col.maxHp, col.hp + 12);
+              this.spawnComicPopup(pk.x, pk.y - 20, '+22% GRUDGE! ☕', '#f97316', 1.15);
+            } else {
+              col.hp = Math.min(col.maxHp, col.hp + 30);
+              this.spawnComicPopup(pk.x, pk.y - 20, '+30 HP! 🌮', '#22c55e', 1.15);
+            }
+            this.pickups.splice(i, 1);
+            break;
+          }
+        }
+      }
+
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const pt = this.particles[i];
+        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+        pt.vx *= Math.pow(0.05, dt); pt.vy *= Math.pow(0.05, dt);
+        pt.life -= dt;
+        if (pt.life <= 0) this.particles.splice(i, 1);
+      }
+      for (let i = this.popups.length - 1; i >= 0; i--) {
+        const pp = this.popups[i];
+        pp.y += pp.vy * dt; pp.life -= dt;
+        if (pp.life <= 0) this.popups.splice(i, 1);
+      }
+      for (let i = this.soundRings.length - 1; i >= 0; i--) {
+        const sr = this.soundRings[i];
+        sr.r += 420 * dt; sr.alpha -= dt * 1.1;
+        if (sr.r >= sr.maxR || sr.alpha <= 0) this.soundRings.splice(i, 1);
+      }
+      for (let i = this.afterimages.length - 1; i >= 0; i--) {
+        this.afterimages[i].alpha -= dt * 2.6;
+        if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
+      }
+    }
+
+    updateHUD() {
+      const p = this.player;
+      const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
+      document.getElementById('p1HealthFill').style.width = `${hpPct}%`;
+      document.getElementById('p1HealthTrail').style.width = `${hpPct}%`;
+      document.getElementById('p1HpText').textContent = `${Math.ceil(p.hp)}/${p.maxHp}`;
+
+      const kos = this.rivals.filter((r) => r.ko).length;
+      document.getElementById('koCountText').textContent = this.mode === '2p'
+        ? `ZONE: ${this.world.getZone(p.x)}`
+        : `RIVALS KO: ${kos}/${this.rivals.length}`;
+      document.getElementById('scoreDisplay').textContent = `SCORE ${String(this.score).padStart(6, '0')}`;
+
+      const gPct = Math.max(0, Math.min(100, p.grudge));
+      const gFill = document.getElementById('grudgeFill');
+      gFill.style.width = `${gPct}%`;
+      const statusBadge = document.getElementById('p1StatusBadge');
+      const gStateText = document.getElementById('grudgeStateText');
+      document.getElementById('grudgePctText').textContent = `${Math.ceil(gPct)}%`;
+
+      if (gPct >= 70) {
+        gFill.style.backgroundColor = '#ef4444'; statusBadge.style.backgroundColor = '#ef4444';
+        statusBadge.textContent = t('fuming'); gStateText.textContent = t('grudgeHigh');
+      } else if (gPct >= 35) {
+        gFill.style.backgroundColor = '#f59e0b'; statusBadge.style.backgroundColor = '#f59e0b';
+        statusBadge.textContent = t('annoyed'); gStateText.textContent = t('grudgeMid');
+      } else if (gPct > 0) {
+        gFill.style.backgroundColor = '#38bdf8'; statusBadge.style.backgroundColor = '#38bdf8';
+        statusBadge.textContent = t('cooling'); gStateText.textContent = t('grudgeLow');
+      } else {
+        gFill.style.backgroundColor = '#64748b'; statusBadge.style.backgroundColor = '#64748b';
+        statusBadge.textContent = t('calm'); gStateText.textContent = t('grudgeZero');
+      }
+
+      const zone = this.world.getZone(p.x);
+      const zoneBadge = document.getElementById('zoneBadge');
+      zoneBadge.textContent = this.mode === '2p' ? (this.isSplitScreen ? 'SPLIT CAM' : 'BRAWL!') : zone;
+      zoneBadge.style.color = zone === 'DOWNTOWN' ? '#fb923c' : '#38bdf8';
+      zoneBadge.style.borderColor = zone === 'DOWNTOWN' ? '#fb923c' : '#38bdf8';
+
+      const hrs = Math.floor(this.dayMinutes / 60) % 24;
+      const mins = Math.floor(this.dayMinutes % 60);
+      document.getElementById('clockText').textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+
+      // Right Panel: Player 2 in 2P Mode OR Active AI Rival in 1P Mode
+      if (this.mode === '2p' && this.player2) {
+        const p2 = this.player2;
+        document.getElementById('rivalName').textContent = t('p2Name');
+        const p2Pct = Math.max(0, (p2.hp / p2.maxHp) * 100);
+        document.getElementById('rivalHealthFill').style.width = `${p2Pct}%`;
+        document.getElementById('rivalHealthTrail').style.width = `${p2Pct}%`;
+        document.getElementById('rivalHpText').textContent = `${Math.ceil(p2.hp)}/${p2.maxHp}`;
+        document.getElementById('rivalStateTag').textContent = this.world.getZone(p2.x);
+        document.getElementById('rivalZoneHint').textContent = `P2 GRUDGE: ${Math.ceil(p2.grudge)}%`;
+        document.getElementById('rivalGrudgeFill').style.width = `${p2.grudge}%`;
+        document.getElementById('grudgeReasonHud').textContent =
+          `P2 ${t('grudge')}: ${Math.ceil(p2.grudge)}% • ${this.grudgeReason}`;
+      } else {
+        const r = this.activeRival;
+        document.getElementById('grudgeReasonHud').textContent =
+          `${SG.currentLang === 'tr' ? 'KİN' : 'GRUDGE'}: ${this.grudgeReason}`;
+        if (r && !r.ko) {
+          document.getElementById('rivalName').textContent = r.name;
+          const rPct = (r.hp / r.maxHp) * 100;
+          document.getElementById('rivalHealthFill').style.width = `${rPct}%`;
+          document.getElementById('rivalHealthTrail').style.width = `${rPct}%`;
+          document.getElementById('rivalHpText').textContent = `${Math.ceil(r.hp)}/${r.maxHp}`;
+          document.getElementById('rivalStateTag').textContent = r.aiState;
+          document.getElementById('rivalZoneHint').textContent = `${this.world.getZone(r.x)} • GRUDGE ${Math.ceil(r.grudge)}%`;
+          document.getElementById('rivalGrudgeFill').style.width = `${r.grudge}%`;
+        } else {
+          document.getElementById('rivalName').textContent = t('noRival');
+          document.getElementById('rivalHealthFill').style.width = '0%';
+          document.getElementById('rivalHealthTrail').style.width = '0%';
+          document.getElementById('rivalHpText').textContent = '--';
+          document.getElementById('rivalStateTag').textContent = t('searchingCity');
+          document.getElementById('rivalZoneHint').textContent = t('roamHint');
+          document.getElementById('rivalGrudgeFill').style.width = '0%';
+        }
+      }
+
+      const comboBox = document.getElementById('comboBox');
+      if (this.comboCount >= 2) {
+        comboBox.classList.remove('hidden');
+        document.getElementById('comboCountText').textContent = `${this.comboCount} HITS!`;
+      } else {
+        comboBox.classList.add('hidden');
+      }
+    }
+
+    loop(ts) {
+      const dt = Math.min(0.05, (ts - this.lastTime) / 1000);
+      this.lastTime = ts;
+      this.update(dt);
+      this.renderer.render(this);
+      requestAnimationFrame((nextTs) => this.loop(nextTs));
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    window.streetGrudgeGame = new StreetGrudgeGame();
+  });
+})(window.StreetGrudge);
+
+</script>
+</body>
+</html>

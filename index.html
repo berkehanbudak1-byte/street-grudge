@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>STREET GRUDGE — Ultra-Realistic Top-Down Arcade Fighter</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- MAIN GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- =========================================================================
+       RETRO ARCADE HUD OVERLAY
+       ========================================================================= -->
+  <div id="hud" class="hidden">
+
+    <!-- TOP ARCADE BAR -->
+    <div class="hud-top-wrap">
+      <div class="hud-top-row">
+
+        <!-- PLAYER 1 PANEL -->
+        <div class="fighter-panel">
+          <div class="panel-header">
+            <div class="panel-name-group">
+              <span id="p1Name" class="font-arcade fighter-name text-outline-sm">O1 (KİNCİ DÖVÜŞÇÜ)</span>
+              <span id="p1StatusBadge" class="font-pixel status-pill">KUDURMUŞ</span>
+            </div>
+            <span id="scoreDisplay" class="font-pixel score-text text-outline-sm">SCORE 000000</span>
+          </div>
+          <div class="bar-track comic-border-sm">
+            <div id="p1HealthTrail" class="bar-trail bar-align-right" style="width: 100%;"></div>
+            <div id="p1HealthFill" class="bar-fill-hp bar-align-right" style="width: 100%;"></div>
+            <div class="bar-overlay-text dark font-pixel">
+              <span id="p1HpText">120/120</span>
+              <span id="koCountText" class="ko-chip">RIVALS KO: 0/6</span>
+            </div>
+          </div>
+          <div class="grudge-row">
+            <span id="grudgeLabel" class="font-arcade grudge-label text-outline-sm">ÖFKE</span>
+            <div class="grudge-track comic-border-sm">
+              <div id="grudgeFill" class="grudge-fill grudge-stripes" style="width: 100%;"></div>
+              <div class="grudge-overlay-text font-pixel text-outline-sm">
+                <span id="grudgeStateText">SAF ÖFKE (+%35 HASAR)</span>
+                <span id="grudgePctText">100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER KO & CLOCK BADGE -->
+        <div class="center-badge-col">
+          <div id="koBadge" class="ko-badge comic-border">
+            <span class="font-arcade ko-badge-title text-outline-sm">KO</span>
+            <span id="clockText" class="font-pixel ko-badge-clock">09:00</span>
+          </div>
+          <div id="zoneBadge" class="zone-badge font-pixel">DOWNTOWN</div>
+        </div>
+
+        <!-- RIVAL / PLAYER 2 PANEL -->
+        <div class="fighter-panel">
+          <div class="panel-header">
+            <span id="rivalStateTag" class="font-pixel status-pill muted">ŞEHİRDE ARANIYOR</span>
+            <span id="rivalName" class="font-arcade fighter-name rival text-outline-sm">YAKINDA RAKİP YOK</span>
+          </div>
+          <div class="bar-track rival-bg comic-border-sm">
+            <div id="rivalHealthTrail" class="bar-trail bar-align-left" style="width: 0%;"></div>
+            <div id="rivalHealthFill" class="bar-fill-hp bar-align-left" style="width: 0%;"></div>
+            <div class="bar-overlay-text light font-pixel text-outline-sm">
+              <span id="rivalHpText">--</span>
+              <span id="rivalZoneHint" style="color:#fde047; font-size:10px;">SOKAKLARI GEZ VEYA [E] BAS</span>
+            </div>
+          </div>
+          <div class="grudge-row">
+            <div class="grudge-track comic-border-sm">
+              <div id="rivalGrudgeFill" class="grudge-fill" style="width: 0%; background:#f97316;"></div>
+              <div class="grudge-overlay-text center font-pixel text-outline-sm">
+                <span id="grudgeReasonHud">KİN: ...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CENTER DYNAMIC EVENT BANNER -->
+    <div class="event-banner-wrap">
+      <div id="eventBanner" class="hidden event-banner comic-border font-arcade text-outline">FIGHT!</div>
+      <div id="eventSubBanner" class="hidden event-sub-banner font-pixel"></div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="hud-bottom-row">
+      <div class="bottom-left">
+        <div id="comboBox" class="hidden combo-box comic-border-sm">
+          <div id="comboCountText" class="font-arcade combo-num text-outline-sm">3 HITS!</div>
+          <div class="font-pixel combo-sub">PETTY COMBO</div>
+        </div>
+
+        <div class="util-btn-row">
+          <button id="btnMute" class="util-btn amber comic-border-sm font-pixel">SFX: ON</button>
+          <button id="btnLang" class="util-btn sky comic-border-sm font-pixel">TR / EN</button>
+          <button id="btnDebugAi" class="util-btn lilac comic-border-sm font-pixel">AI FSM: OFF</button>
+          <button id="btnRestartHud" class="util-btn rose comic-border-sm font-pixel">YENİ GÜN [R]</button>
+        </div>
+
+        <div id="controlsStrip" class="controls-strip font-pixel"></div>
+      </div>
+
+      <div class="minimap-col">
+        <div id="soundCuePill" class="hidden sound-cue-pill font-pixel"></div>
+        <div class="minimap-frame comic-border">
+          <canvas id="minimapCanvas" width="196" height="144"></canvas>
+          <div class="minimap-title font-pixel text-outline-sm">CITY MAP</div>
+          <div class="minimap-zones font-pixel">DT | UT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE TOUCH CONTROLS -->
+  <div id="touchControls">
+    <div class="touch-dpad">
+      <div></div>
+      <button data-key="KeyW" class="touch-btn comic-border-sm font-arcade">▲</button>
+      <div></div>
+      <button data-key="KeyA" class="touch-btn comic-border-sm font-arcade">◀</button>
+      <button data-key="KeyS" class="touch-btn comic-border-sm font-arcade">▼</button>
+      <button data-key="KeyD" class="touch-btn comic-border-sm font-arcade">▶</button>
+    </div>
+    <div class="touch-actions">
+      <button data-key="KeyJ" class="touch-btn comic-border-sm font-arcade" style="background:#facc15;color:#111;">PUNCH</button>
+      <button data-key="KeyK" class="touch-btn comic-border-sm font-arcade" style="background:#fb923c;color:#111;">KICK</button>
+      <button data-key="KeyU" class="touch-btn comic-border-sm font-arcade" style="background:#ef4444;">SPEC</button>
+      <button data-key="Space" class="touch-btn comic-border-sm font-arcade" style="background:#38bdf8;color:#111;">DASH</button>
+      <button data-key="KeyL" class="touch-btn comic-border-sm font-arcade" style="background:#a855f7;">BLK</button>
+      <button data-key="KeyE" class="touch-btn comic-border-sm font-arcade" style="background:#4ade80;color:#111;">YELL</button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       TITLE / MODE SELECT MODAL
+       ========================================================================= -->
+  <div id="startModal" class="modal-backdrop">
+    <div class="modal-card comic-border halftone-bg">
+      <div class="modal-top-bar">
+        <span class="ribbon-tag comic-border-sm font-pixel">SATIRICAL OPEN-WORLD FIGHTER v2</span>
+        <button id="startLangBtn" class="lang-toggle-btn comic-border-sm font-pixel">DİL: TR / EN</button>
+      </div>
+
+      <h1 class="title-logo font-arcade text-outline">STREET GRUDGE</h1>
+      <p id="startSubtitle" class="title-sub font-arcade"></p>
+
+      <div id="startPitch" class="pitch-box comic-border-sm"></div>
+
+      <div class="cards-grid">
+        <div class="info-card c1 comic-border-sm">
+          <h3 id="card1Title" class="font-arcade"></h3>
+          <p id="card1Body"></p>
+        </div>
+        <div class="info-card c2 comic-border-sm">
+          <h3 id="card2Title" class="font-arcade"></h3>
+          <p id="card2Body"></p>
+        </div>
+        <div class="info-card c3 comic-border-sm">
+          <h3 id="card3Title" class="font-arcade"></h3>
+          <p id="card3Body"></p>
+        </div>
+      </div>
+
+      <!-- 1P vs 2P LOCAL SPLIT-SCREEN MODE SELECTOR -->
+      <div class="mode-row">
+        <button id="btnMode1P" class="mode-btn mode-active comic-border-sm font-arcade">1P OPEN WORLD (6 AI)</button>
+        <button id="btnMode2P" class="mode-btn comic-border-sm font-arcade">2P LOCAL SPLIT-SCREEN</button>
+      </div>
+
+      <div id="startControlsBox" class="start-controls-box comic-border-sm font-pixel"></div>
+
+      <div class="cta-row">
+        <span class="font-pixel" style="font-size:11px; color:#475569;">Downtown &amp; Uptown • Subway Express • 6 AI FSM</span>
+        <button id="btnStartGame" class="primary-cta comic-border font-arcade text-outline-sm">GÜNE BAŞLA!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       END-OF-DAY RESULT MODAL
+       ========================================================================= -->
+  <div id="endModal" class="hidden modal-backdrop">
+    <div class="modal-card compact comic-border halftone-bg">
+      <div id="endBadge" class="ribbon-tag comic-border-sm font-pixel" style="display:inline-block; margin-bottom:8px;">DRAW</div>
+      <h2 id="endTitle" class="font-arcade text-outline" style="margin:0; font-size:38px;">FORGOT WHY YOU WERE MAD!</h2>
+      <p id="endQuote" class="pitch-box comic-border-sm" style="font-style:italic;"></p>
+
+      <div class="stats-grid font-pixel">
+        <div class="stat-box s1 comic-border-sm"><div class="lbl">SCORE</div><div id="statScore" class="val">0</div></div>
+        <div class="stat-box s2 comic-border-sm"><div class="lbl">K.O.</div><div id="statKos" class="val">0/6</div></div>
+        <div class="stat-box s3 comic-border-sm"><div class="lbl">WALKED</div><div id="statDist" class="val">0m</div></div>
+        <div class="stat-box s4 comic-border-sm"><div class="lbl">PROPS</div><div id="statProps" class="val">0</div></div>
+      </div>
+
+      <div id="endForgottenReason" class="font-pixel" style="margin-top:10px; font-size:11px; color:#475569;"></div>
+
+      <button id="btnPlayAgain" class="primary-cta comic-border font-arcade text-outline-sm" style="width:100%; margin-top:14px;">YENİ KİN BAŞLAT [R]</button>
+      <button id="btnBackTitle" class="secondary-cta comic-border-sm font-pixel">ANA MENÜ / MOD SEÇ</button>
+    </div>
+  </div>
+
+  <!-- MODULAR ENGINE SCRIPTS (Works directly via file:// without a server) -->
+  <script defer src="src/config.js"></script>
+  <script defer src="src/audio.js"></script>
+  <script defer src="src/world.js"></script>
+  <script defer src="src/fighters.js"></script>
+  <script defer src="src/renderer.js"></script>
+  <script defer src="src/game.js"></script>
+</body>
+</html>
